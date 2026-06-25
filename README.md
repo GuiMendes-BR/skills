@@ -1,0 +1,50 @@
+# GuiMendes-BR/skills
+
+Claude Code skill marketplace — extends the Matt Pocock engineering workflow with GitHub integration and machine bootstrapping.
+
+## Skills
+
+| Skill | Description |
+|-------|-------------|
+| `setup-user` | Bootstrap a new machine with all required marketplaces, plugins, and skill install instructions |
+| `setup-repo` | One-time per-project setup: runs Matt Pocock's setup skill then configures branch strategy |
+| `setup-github-workflow` | Add branch strategy configuration to a project (standalone fallback for `setup-repo`) |
+| `ship-issue` | Print the push command and comment on a GitHub issue after implementing it |
+
+## Installation
+
+Add this marketplace to `~/.claude/settings.json`:
+
+```json
+"gmo-skills": {
+  "source": {
+    "source": "github",
+    "repo": "GuiMendes-BR/skills"
+  }
+}
+```
+
+Then install individual skills from the Claude Code skill browser.
+
+## Workflow
+
+```
+# New machine (one-time):
+1. Add gmo-skills to ~/.claude/settings.json (manual)
+2. Install setup-user from gmo-skills
+3. /setup-user  →  adds marketplaces, enables plugins, prints install checklist
+
+# New project (one-time):
+/setup-repo  →  Matt's setup + branch strategy config
+
+# Every session:
+/context-engineering  →  briefs the agent on git history, open issues, TODOs
+
+# Per feature:
+/to-issues     →  create GitHub issues from a plan
+/implement #N  →  commit to dev locally
+/ship-issue #N →  print push command + comment on issue
+
+# Promotion:
+Open PR: dev → prod with "Closes #N" in body
+```
