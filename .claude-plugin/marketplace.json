@@ -1,0 +1,25 @@
+{
+  "name": "gmo-skills",
+  "owner": {
+    "name": "Gui Mendes",
+    "email": "guigomeebr@gmail.com"
+  },
+  "metadata": {
+    "description": "GitHub integration and machine bootstrapping skills extending the Matt Pocock engineering workflow",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "gmo-skills",
+      "description": "Four skills for bootstrapping machines, configuring repos with branch strategy, and shipping issues to GitHub",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/setup-user",
+        "./skills/setup-repo",
+        "./skills/setup-github-workflow",
+        "./skills/ship-issue"
+      ]
+    }
+  ]
+}
