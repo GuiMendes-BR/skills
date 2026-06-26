@@ -29,7 +29,17 @@ Invoke the `/setup-github-workflow` skill now. Wait for it to complete before co
 
 All steps are idempotent — check before acting.
 
-**3a. Init local repo**
+**3a. Create README.md**
+
+If `README.md` does not already exist, create it with the working directory name as the project title:
+
+```
+# <repo-name>
+```
+
+Skip if `README.md` already exists.
+
+**3b. Init local repo**
 
 Check whether `.git` exists in the current directory:
 
@@ -48,7 +58,7 @@ If it DOES exist but the current branch is not `dev`, check out `dev` (create it
 git checkout -b dev 2>/dev/null || git checkout dev
 ```
 
-**3b. Stage and commit existing files**
+**3c. Stage and commit existing files**
 
 If there are uncommitted changes or untracked files, stage and commit everything:
 ```
@@ -58,7 +68,7 @@ git diff --cached --quiet || git commit -m "chore: initial project setup with ag
 
 (Skip if the working tree is already clean and the commit already exists.)
 
-**3c. Create GitHub repo**
+**3d. Create GitHub repo**
 
 Check whether the `origin` remote is already set:
 ```
@@ -70,14 +80,14 @@ If it is NOT set, derive the repo name from the working directory name and creat
 gh repo create <repo-name> --private --source . --remote origin
 ```
 
-**3d. Push `dev` branch**
+**3e. Push `dev` branch**
 
 Push `dev` to origin (safe to re-run — `--set-upstream` is a no-op if tracking is already set):
 ```
 git push -u origin dev
 ```
 
-**3e. Create and push `prod` branch**
+**3f. Create and push `prod` branch**
 
 Check if `prod` exists locally or on origin, then create and push if needed:
 ```
@@ -86,7 +96,7 @@ git push -u origin prod
 git checkout dev
 ```
 
-**3f. Set `prod` as the default branch on GitHub**
+**3g. Set `prod` as the default branch on GitHub**
 
 ```
 gh api repos/{owner}/<repo-name> -X PATCH -f default_branch=prod
