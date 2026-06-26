@@ -1,6 +1,6 @@
 ---
 name: setup-repo
-description: One-time per-project setup. Calls Matt Pocock's setup skill, then adds branch strategy configuration. Run once at the start of each new project.
+description: One-time per-project setup. Pre-populates agent config, adds branch strategy configuration, and initializes git/GitHub. Run once at the start of each new project.
 ---
 
 # Setup Repo
@@ -11,15 +11,15 @@ Configure this project for the full gmo engineering workflow.
 
 ### 0. Dependency check
 
-Check whether `~/.claude/skills/setup-matt-pocock-skills/` exists (or an equivalent path showing the skill is installed).
+Check whether the `gh` CLI is authenticated by running `gh auth status`.
 
-If it does NOT exist, stop and tell the user:
+If it is NOT authenticated, stop and tell the user:
 
-> This skill requires Matt Pocock's engineering skills. Run `/setup-user` first to configure your machine, then install the required skills from the marketplace. Re-run `/setup-repo` once done.
+> Run `gh auth login` first, then re-run `/setup-repo`.
 
 ### 1. Pre-create agent config
 
-Run the following PowerShell script in a single call. It writes the three `docs/agents/` files that `/setup-matt-pocock-skills` would otherwise ask about interactively. All values are fixed defaults for this workflow: GitHub issue tracker, default triage labels, auto-detected domain layout. The script is idempotent — existing files are left untouched.
+Run the following PowerShell script in a single call. It creates `CLAUDE.md` with the agent skills block and pre-populates the three `docs/agents/` config files with fixed defaults: GitHub issue tracker, default triage labels, auto-detected domain layout. The script is idempotent — existing files are left untouched.
 
 ```powershell
 New-Item -ItemType Directory -Force -Path "docs/agents" | Out-Null
@@ -106,18 +106,32 @@ If your output contradicts an existing ADR, surface it explicitly:
 '@ | Set-Content "docs/agents/domain.md" -Encoding utf8
 }
 
-Write-Host "Agent config pre-populated in docs/agents/."
+if (-not (Test-Path "CLAUDE.md")) {
+    @'
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues, no PR triage surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default label vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Auto-detected from `CONTEXT-MAP.md` presence (single-context by default). See `docs/agents/domain.md`.
+'@ | Set-Content "CLAUDE.md" -Encoding utf8
+}
+
+Write-Host "Agent config pre-populated in docs/agents/ and CLAUDE.md."
 ```
 
-### 2. Run Matt Pocock's setup
-
-Invoke the `/setup-matt-pocock-skills` skill now. The `docs/agents/` files are already present — the skill should detect this, skip its interactive questions, and proceed directly to writing the `## Agent skills` block in `CLAUDE.md`. Wait for it to complete before continuing.
-
-### 3. Run GitHub workflow setup
+### 2. Run GitHub workflow setup
 
 Invoke the `/setup-github-workflow` skill now. Wait for it to complete before continuing.
 
-### 4. Initialize git and GitHub remote
+### 3. Initialize git and GitHub remote
 
 Run the following PowerShell script in a single call. It is fully idempotent.
 
@@ -245,6 +259,6 @@ gh api "repos/$owner/$repoName" -X PATCH -f default_branch=prod
 Write-Host "Git and GitHub setup complete."
 ```
 
-### 5. Done
+### 4. Done
 
 Tell the user: "Project is set up. Run `/ship-issue #<number>` after each implementation to push to dev and comment on the issue."
