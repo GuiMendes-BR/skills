@@ -29,15 +29,91 @@ Invoke the `/setup-github-workflow` skill now. Wait for it to complete before co
 
 All steps are idempotent — check before acting.
 
-**3a. Create README.md**
+**3a. Create initial files**
 
-If `README.md` does not already exist, create it with the working directory name as the project title:
+Create the following files if they do not already exist (skip each one individually if already present).
+
+**`README.md`** — minimal placeholder using the working directory name:
 
 ```
 # <repo-name>
 ```
 
-Skip if `README.md` already exists.
+**`.gitignore`** — generic multi-language template:
+
+```
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Node
+node_modules/
+dist/
+build/
+.npm
+.yarn/cache
+.pnp.*
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+.Python
+*.egg-info/
+dist/
+.pytest_cache/
+.mypy_cache/
+
+# Java / JVM
+*.class
+*.jar
+*.war
+*.ear
+target/
+.gradle/
+build/
+
+# Rust
+target/
+
+# Go
+vendor/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# Misc
+*.bak
+*.tmp
+*.orig
+coverage/
+.cache/
+```
 
 **3b. Init local repo**
 
