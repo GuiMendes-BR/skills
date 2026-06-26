@@ -17,31 +17,119 @@ If it does NOT exist, stop and tell the user:
 
 > This skill requires Matt Pocock's engineering skills. Run `/setup-user` first to configure your machine, then install the required skills from the marketplace. Re-run `/setup-repo` once done.
 
-### 1. Run Matt Pocock's setup
+### 1. Pre-create agent config
 
-Invoke the `/setup-matt-pocock-skills` skill now. Wait for it to complete before continuing.
+Run the following PowerShell script in a single call. It writes the three `docs/agents/` files that `/setup-matt-pocock-skills` would otherwise ask about interactively. All values are fixed defaults for this workflow: GitHub issue tracker, default triage labels, auto-detected domain layout. The script is idempotent — existing files are left untouched.
 
-### 2. Run GitHub workflow setup
+```powershell
+New-Item -ItemType Directory -Force -Path "docs/agents" | Out-Null
+
+if (-not (Test-Path "docs/agents/issue-tracker.md")) {
+    @'
+# Issue tracker: GitHub
+
+Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for all operations.
+
+## Conventions
+
+- **Create an issue**: `gh issue create --title "..." --body "..."`. Use a heredoc for multi-line bodies.
+- **Read an issue**: `gh issue view <number> --comments`, filtering comments by `jq` and also fetching labels.
+- **List issues**: `gh issue list --state open --json number,title,body,labels,comments --jq '[.[] | {number, title, body, labels: [.labels[].name], comments: [.comments[].body]}]'` with appropriate `--label` and `--state` filters.
+- **Comment on an issue**: `gh issue comment <number> --body "..."`
+- **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
+- **Close**: `gh issue close <number> --comment "..."`
+
+Infer the repo from `git remote -v` — `gh` does this automatically when run inside a clone.
+
+## Pull requests as a triage surface
+
+**PRs as a request surface: no.**
+
+## When a skill says "publish to the issue tracker"
+
+Create a GitHub issue.
+
+## When a skill says "fetch the relevant ticket"
+
+Run `gh issue view <number> --comments`.
+'@ | Set-Content "docs/agents/issue-tracker.md" -Encoding utf8
+}
+
+if (-not (Test-Path "docs/agents/triage-labels.md")) {
+    @'
+# Triage Labels
+
+The skills speak in terms of five canonical triage roles. This file maps those roles to the actual label strings used in this repo's issue tracker.
+
+| Label in mattpocock/skills | Label in our tracker | Meaning                                  |
+| -------------------------- | -------------------- | ---------------------------------------- |
+| `needs-triage`             | `needs-triage`       | Maintainer needs to evaluate this issue  |
+| `needs-info`               | `needs-info`         | Waiting on reporter for more information |
+| `ready-for-agent`          | `ready-for-agent`    | Fully specified, ready for an AFK agent  |
+| `ready-for-human`          | `ready-for-human`    | Requires human implementation            |
+| `wontfix`                  | `wontfix`            | Will not be actioned                     |
+
+When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the corresponding label string from this table.
+'@ | Set-Content "docs/agents/triage-labels.md" -Encoding utf8
+}
+
+if (-not (Test-Path "docs/agents/domain.md")) {
+    @'
+# Domain Docs
+
+How the engineering skills should consume this repo's domain documentation when exploring the codebase.
+
+## Before exploring, read these
+
+- **`CONTEXT.md`** at the repo root, or
+- **`CONTEXT-MAP.md`** at the repo root if it exists — it points at one `CONTEXT.md` per context. Read each one relevant to the topic.
+- **`docs/adr/`** — read ADRs that touch the area you're about to work in. In multi-context repos, also check `src/<context>/docs/adr/` for context-scoped decisions.
+
+If any of these files don't exist, proceed silently. Don't flag their absence; don't suggest creating them upfront.
+
+## File structure
+
+- **Single-context** (most repos): one `CONTEXT.md` + `docs/adr/` at the repo root.
+- **Multi-context** (monorepo): `CONTEXT-MAP.md` at the root pointing to per-context `CONTEXT.md` files, with `docs/adr/` both at the root (system-wide) and under each context directory.
+
+## Use the glossary's vocabulary
+
+When your output names a domain concept, use the term as defined in `CONTEXT.md`. Don't drift to synonyms the glossary explicitly avoids.
+
+If the concept you need isn't in the glossary yet, note it for `/domain-modeling`.
+
+## Flag ADR conflicts
+
+If your output contradicts an existing ADR, surface it explicitly:
+
+> _Contradicts ADR-0007 — but worth reopening because..._
+'@ | Set-Content "docs/agents/domain.md" -Encoding utf8
+}
+
+Write-Host "Agent config pre-populated in docs/agents/."
+```
+
+### 2. Run Matt Pocock's setup
+
+Invoke the `/setup-matt-pocock-skills` skill now. The `docs/agents/` files are already present — the skill should detect this, skip its interactive questions, and proceed directly to writing the `## Agent skills` block in `CLAUDE.md`. Wait for it to complete before continuing.
+
+### 3. Run GitHub workflow setup
 
 Invoke the `/setup-github-workflow` skill now. Wait for it to complete before continuing.
 
-### 3. Initialize git and GitHub remote
+### 4. Initialize git and GitHub remote
 
-All steps are idempotent — check before acting.
+Run the following PowerShell script in a single call. It is fully idempotent.
 
-**3a. Create initial files**
+```powershell
+$repoName = Split-Path -Leaf (Get-Location)
 
-Create the following files if they do not already exist (skip each one individually if already present).
-
-**`README.md`** — minimal placeholder using the working directory name:
-
-```
-# <repo-name>
-```
-
-**`.gitignore`** — generic multi-language template:
-
-```
+# 3a — initial files
+if (-not (Test-Path "README.md")) {
+    Set-Content "README.md" "# $repoName" -Encoding utf8
+}
+if (-not (Test-Path ".gitignore")) {
+    @'
 # OS
 .DS_Store
 Thumbs.db
@@ -113,73 +201,50 @@ vendor/
 *.orig
 coverage/
 .cache/
-```
+'@ | Set-Content ".gitignore" -Encoding utf8
+}
 
-**3b. Init local repo**
+# 3b — init repo and ensure dev branch
+if (-not (Test-Path ".git")) {
+    git init
+    git checkout -b dev
+} else {
+    $branch = git branch --show-current
+    if ($branch -ne "dev") {
+        git checkout -b dev
+        if ($LASTEXITCODE -ne 0) { git checkout dev }
+    }
+}
 
-Check whether `.git` exists in the current directory:
+# 3c — stage and commit if dirty
+$dirty = git status --porcelain
+if ($dirty) {
+    git add .
+    git commit -m "chore: initial project setup with agent config"
+}
 
-```
-git rev-parse --git-dir
-```
+# 3d — create GitHub repo if no origin remote
+$remotes = git remote
+if ($remotes -notcontains "origin") {
+    gh repo create $repoName --private --source . --remote origin
+}
 
-If it does NOT exist:
-```
-git init
-git checkout -b dev
-```
-
-If it DOES exist but the current branch is not `dev`, check out `dev` (create it if needed):
-```
-git checkout -b dev 2>/dev/null || git checkout dev
-```
-
-**3c. Stage and commit existing files**
-
-If there are uncommitted changes or untracked files, stage and commit everything:
-```
-git add .
-git diff --cached --quiet || git commit -m "chore: initial project setup with agent config"
-```
-
-(Skip if the working tree is already clean and the commit already exists.)
-
-**3d. Create GitHub repo**
-
-Check whether the `origin` remote is already set:
-```
-git remote get-url origin
-```
-
-If it is NOT set, derive the repo name from the working directory name and create a private GitHub repo:
-```
-gh repo create <repo-name> --private --source . --remote origin
-```
-
-**3e. Push `dev` branch**
-
-Push `dev` to origin (safe to re-run — `--set-upstream` is a no-op if tracking is already set):
-```
+# 3e — push dev
 git push -u origin dev
-```
 
-**3f. Create and push `prod` branch**
-
-Check if `prod` exists locally or on origin, then create and push if needed:
-```
-git checkout -b prod 2>/dev/null || git checkout prod
+# 3f — prod branch
+$prodLocal = git branch --list prod
+if (-not $prodLocal) { git checkout -b prod } else { git checkout prod }
 git push -u origin prod
 git checkout dev
+
+# 3g — set prod as default branch
+$owner = gh api user --jq .login
+gh api "repos/$owner/$repoName" -X PATCH -f default_branch=prod
+
+Write-Host "Git and GitHub setup complete."
 ```
 
-**3g. Set `prod` as the default branch on GitHub**
-
-```
-gh api repos/{owner}/<repo-name> -X PATCH -f default_branch=prod
-```
-
-Derive `{owner}` from `gh api user --jq .login`.
-
-### 4. Done
+### 5. Done
 
 Tell the user: "Project is set up. Run `/ship-issue #<number>` after each implementation to push to dev and comment on the issue."
