@@ -78,5 +78,7 @@ Tell the user:
 > - `setup-repo`
 > - `setup-github-workflow`
 > - `ship-issue`
+> - `release-to-qa`
+> - `release-to-prod`
 >
 > Once installed, run `/setup-repo` inside each project.
