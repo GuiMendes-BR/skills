@@ -10,6 +10,7 @@ Claude Code skill marketplace — extends the Matt Pocock engineering workflow w
 | `setup-repo` | One-time per-project setup: runs Matt Pocock's setup skill then configures branch strategy |
 | `setup-github-workflow` | Add branch strategy configuration to a project (standalone fallback for `setup-repo`) |
 | `ship-issue` | Print the push command and comment on a GitHub issue after implementing it |
+| `setup-github-actions` | Generate GitHub Actions workflow files based on branch strategy, project type, and CI trigger preference |
 
 ## Installation
 
@@ -35,7 +36,8 @@ Then install individual skills from the Claude Code skill browser.
 3. /setup-user  →  adds marketplaces, enables plugins, prints install checklist
 
 # New project (one-time):
-/setup-repo  →  Matt's setup + branch strategy config
+/setup-repo              →  Matt's setup + branch strategy config
+/setup-github-actions    →  generate .github/workflows/ CI files
 
 # Every session:
 /context-engineering  →  briefs the agent on git history, open issues, TODOs
