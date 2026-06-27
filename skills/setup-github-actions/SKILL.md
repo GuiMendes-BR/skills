@@ -27,7 +27,7 @@ Ask the user:
 
 ### 3. Ask: project type(s)
 
-**If single repo**, ask:
+**If single repo**, ask — present exactly these 5 options, do not omit any:
 
 > What type of project is this?
 > - **Python Flask**
@@ -38,11 +38,13 @@ Ask the user:
 
 **If monorepo**, ask two separate questions:
 
+First — present exactly these 2 options, do not omit any:
+
 > What type is the **frontend** (`frontend/` directory)?
 > - **React**
 > - **Other**
 
-Then:
+Then — present exactly these 3 options, do not omit any:
 
 > What type is the **backend** (`backend/` directory)?
 > - **Python Flask**
