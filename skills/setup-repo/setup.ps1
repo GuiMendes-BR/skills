@@ -290,14 +290,28 @@ if ($Tier -eq '3') {
 }
 
 # --- Stage 4 - branch protection (idempotent) ---
+# Branch protection on a PRIVATE repo requires GitHub Pro/Team or higher.
+# On a free plan with a private repo, GitHub returns 403 ("Upgrade to GitHub Pro
+# or make this repository public to enable this feature"). That is a plan limit,
+# not a setup failure -- the PR-based promotion workflow still works without it,
+# so we warn and continue rather than aborting the whole run.
+$script:ProtectionSkipped = $false
 function Set-BranchProtection($branch, $approvalCount) {
     $body = "{`"required_status_checks`":null,`"enforce_admins`":false,`"required_pull_request_reviews`":{`"required_approving_review_count`":$approvalCount,`"dismiss_stale_reviews`":false},`"restrictions`":null}"
     $tmpFile = [System.IO.Path]::GetTempFileName()
     Set-Content -Path $tmpFile -Value $body -Encoding utf8
-    gh api "repos/$owner/$repoName/branches/$branch/protection" -X PUT --input $tmpFile | Out-Null
+    $out = gh api "repos/$owner/$repoName/branches/$branch/protection" -X PUT --input $tmpFile 2>&1
     $code = $LASTEXITCODE
     Remove-Item $tmpFile
-    if ($code -ne 0) { Fail 'protection' "Failed to set branch protection on '$branch'." }
+    if ($code -ne 0) {
+        if ("$out" -match 'Upgrade to GitHub Pro|make this repository public') {
+            Write-Host "WARNING: skipped branch protection on '$branch' -- it requires GitHub Pro/Team for a private repo, or a public repo. Promote only via PR; the workflow still works."
+            $script:ProtectionSkipped = $true
+        }
+        else {
+            Fail 'protection' "Failed to set branch protection on '$branch': $out"
+        }
+    }
 }
 
 $prodApprovals = if ($ProdApproval -eq 'yes') { 1 } else { 0 }
@@ -369,3 +383,6 @@ if ($Tier -eq '3') {
 # --- Stage 6 - done ---
 Write-Host ""
 Write-Host "SETUP COMPLETE"
+if ($script:ProtectionSkipped) {
+    Write-Host "NOTE: branch protection was skipped (GitHub plan limit). To enable it later, make the repo public or upgrade to GitHub Pro, then re-run /setup-repo."
+}

@@ -65,4 +65,7 @@ The script prints `SETUP COMPLETE` on success, or `SETUP FAILED at stage: <stage
 
   If either branch was set to require approval, remind the user that GitHub Environment required-reviewer gates need the GitHub Team plan or higher.
 
+  If the script prints a `NOTE: branch protection was skipped` line, ignore it — the script will have already printed a warning about the missing GitHub plan.
+
+
 - **On failure**, relay the failing stage and reason verbatim, help the user fix it, then re-run — the script is idempotent and safe to re-run.
