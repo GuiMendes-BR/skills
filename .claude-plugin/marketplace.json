@@ -19,7 +19,9 @@
         "./skills/setup-repo",
         "./skills/setup-github-workflow",
         "./skills/ship-issue",
-        "./skills/setup-github-actions"
+        "./skills/setup-github-actions",
+        "./skills/release-to-qa",
+        "./skills/release-to-prod"
       ]
     }
   ]

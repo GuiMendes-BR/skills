@@ -11,6 +11,8 @@ Claude Code skill marketplace — extends the Matt Pocock engineering workflow w
 | `setup-github-workflow` | Add branch strategy configuration to a project (standalone fallback for `setup-repo`) |
 | `ship-issue` | Print the push command and comment on a GitHub issue after implementing it |
 | `setup-github-actions` | Generate GitHub Actions workflow files based on branch strategy, project type, and CI trigger preference |
+| `release-to-qa` | Open a PR promoting `dev → qa` with auto-detected issues (3-tier only) |
+| `release-to-prod` | Open a PR promoting `qa → prod` with auto-detected issues (3-tier only) |
 
 ## Installation
 
@@ -47,6 +49,10 @@ Then install individual skills from the Claude Code skill browser.
 /implement #N  →  commit to dev locally
 /ship-issue #N →  print push command + comment on issue
 
-# Promotion:
+# Promotion (3-tier):
+/release-to-qa   →  open PR dev → qa with auto-detected issues
+/release-to-prod →  open PR qa → prod with auto-detected issues
+
+# Promotion (2-tier):
 Open PR: dev → prod with "Closes #N" in body
 ```
