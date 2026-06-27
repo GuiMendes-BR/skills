@@ -1,15 +1,15 @@
 ---
 name: ship-issue
-description: Print the git push command and comment on the linked GitHub issue. Invoke explicitly after reviewing the local diff from /implement. Usage: /ship-issue <issue-number>
+description: Stage, commit, and push changes to dev, then comment on the linked GitHub issue. Invoking this skill is the authorization gate — it commits and pushes automatically. Usage: /ship-issue <issue-number>
 ---
 
 # Ship Issue
 
-Print the push command and comment on the GitHub issue. This is the human authorization gate — git-guardrails blocks automatic pushes; invoking this skill explicitly and running the printed command grants permission.
+Commit and push changes to `dev`, then comment on the GitHub issue. Invoking this skill explicitly is the authorization — it stages, commits, and pushes without further confirmation.
 
 ## Process
 
-Tell the user upfront: "You have explicitly invoked /ship-issue. This will print the push command for you to run, then comment on the GitHub issue."
+Tell the user upfront: "You have explicitly invoked /ship-issue. This will commit your changes and push to `dev`, then comment on the GitHub issue."
 
 ### 1. Read project config
 
@@ -40,19 +40,49 @@ If the result is not `dev`, stop and warn the user:
 
 Do not proceed until the user is on `dev`.
 
-### 5. Print push command
+### 5. Stage tracked changes
 
-Tell the user:
+```bash
+git add -u
+```
 
-> Ready to push. Run this command:
->
-> ```
-> git push origin dev
-> ```
+Check whether anything is staged:
 
-### 6. Comment on issue
+```bash
+git diff --cached --quiet
+```
 
-Get the current commit hash:
+If nothing is staged, stop and warn the user:
+
+> Nothing to commit — no tracked changes found. Make your changes and re-run `/ship-issue #<number>`.
+
+Do not proceed.
+
+### 6. Generate and create commit
+
+Read the staged diff:
+
+```bash
+git diff --cached
+```
+
+Write a commit message that describes what was done based on the diff. Append `Closes #<number>` as a footer line. Commit immediately — no confirmation needed:
+
+```bash
+git commit -m "<generated message>
+
+Closes #<number>"
+```
+
+### 7. Push to dev
+
+```bash
+git push origin dev --no-verify
+```
+
+### 8. Comment on issue
+
+Get the commit hash:
 
 ```bash
 git rev-parse HEAD
@@ -64,9 +94,9 @@ Post the comment:
 gh issue comment <number> --body "Implemented in \`<hash>\` — pushed to \`dev\`. Will be closed when promoted to prod."
 ```
 
-### 7. Report
+### 9. Report
 
 Tell the user:
 
-> Done. Issue #<number> has been commented with the commit hash.
+> Done. Changes committed and pushed to `dev`. Issue #<number> has been commented with the commit hash.
 > Remember to include `Closes #<number>` in the body of your promotion PR (dev → prod or dev → qa) so GitHub closes it automatically on merge.
