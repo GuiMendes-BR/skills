@@ -256,9 +256,55 @@ git checkout dev
 $owner = gh api user --jq .login
 gh api "repos/$owner/$repoName" -X PATCH -f default_branch=prod
 
+# 3h — qa branch (3-tier projects only)
+$strategyFile = "docs/agents/branch-strategy.md"
+if ((Test-Path $strategyFile) -and (Get-Content $strategyFile -Raw) -match "3-tier") {
+    $qaLocal = git branch --list qa
+    if (-not $qaLocal) { git checkout -b qa } else { git checkout qa }
+    git push -u origin qa
+    git checkout dev
+}
+
 Write-Host "Git and GitHub setup complete."
 ```
 
-### 4. Done
+### 4. Configure branch protection
 
-Tell the user: "Project is set up. Run `/ship-issue #<number>` after each implementation to push to dev and comment on the issue."
+Ask the user:
+
+> Should PRs to `prod` require a manual approval before merging? (yes/no)
+
+Then run the following PowerShell script in a single call, substituting the user's answer (`yes` or `no`) for `$requireProdApproval`:
+
+```powershell
+$owner = gh api user --jq .login
+$repoName = Split-Path -Leaf (Get-Location)
+$strategyFile = "docs/agents/branch-strategy.md"
+$strategy = if (Test-Path $strategyFile) { Get-Content $strategyFile -Raw } else { "" }
+$requireProdApproval = "yes"  # or "no" — substitute user's answer here
+
+function Set-BranchProtection {
+    param($branch, $approvalCount)
+    $body = "{`"required_status_checks`":null,`"enforce_admins`":false,`"required_pull_request_reviews`":{`"required_approving_review_count`":$approvalCount,`"dismiss_stale_reviews`":false},`"restrictions`":null}"
+    $tmpFile = [System.IO.Path]::GetTempFileName()
+    Set-Content -Path $tmpFile -Value $body -Encoding utf8
+    gh api "repos/$owner/$repoName/branches/$branch/protection" -X PUT --input $tmpFile
+    Remove-Item $tmpFile
+}
+
+$prodApprovals = if ($requireProdApproval -eq "yes") { 1 } else { 0 }
+Set-BranchProtection -branch "prod" -approvalCount $prodApprovals
+
+if ($strategy -match "3-tier") {
+    Set-BranchProtection -branch "qa" -approvalCount 0
+}
+
+Write-Host "Branch protection configured."
+```
+
+### 5. Done
+
+Tell the user: "Project is set up. Available workflow commands:
+- `/ship-issue #N` — commit and push to `dev`, comment on issue
+- `/release-to-qa` — open a PR promoting `dev → qa` (3-tier only)
+- `/release-to-prod` — open a PR promoting `qa → prod` (3-tier only)"
