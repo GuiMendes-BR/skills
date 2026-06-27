@@ -77,6 +77,6 @@ Tell the user:
 > **From `gmo-skills` (this repo):**
 > - `setup-repo`
 > - `setup-github-workflow`
-> - `ship-issue`
+> - `push-to-dev`
 >
 > Once installed, run `/setup-repo` inside each project.

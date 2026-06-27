@@ -305,6 +305,6 @@ Write-Host "Branch protection configured."
 ### 5. Done
 
 Tell the user: "Project is set up. Available workflow commands:
-- `/ship-issue #N` — commit and push to `dev`, comment on issue
+- `/push-to-dev #N` — commit and push to `dev`, comment on issue
 - `/release-to-qa` — open a PR promoting `dev → qa` (3-tier only)
 - `/release-to-prod` — open a PR promoting `qa → prod` (3-tier only)"

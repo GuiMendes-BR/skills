@@ -33,7 +33,7 @@ description: <one-line description of what the skill does and when to use it>
 ...
 ```
 
-Match the frontmatter and section structure of existing skills (`skills/ship-issue/SKILL.md` is the canonical reference).
+Match the frontmatter and section structure of existing skills (`skills/push-to-dev/SKILL.md` is the canonical reference).
 
 ## Adding a new skill
 
