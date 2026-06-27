@@ -18,7 +18,8 @@
         "./skills/setup-user",
         "./skills/setup-repo",
         "./skills/setup-github-workflow",
-        "./skills/ship-issue"
+        "./skills/ship-issue",
+        "./skills/setup-github-actions"
       ]
     }
   ]
