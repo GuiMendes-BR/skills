@@ -1,6 +1,6 @@
 ---
 name: setup-github-actions
-description: Generate GitHub Actions workflow files based on your branch strategy, project type, and preferred CI trigger. Run after /setup-github-workflow.
+description: Generate GitHub Actions workflow files that run tests on PRs to qa and prod. Run after /setup-github-workflow.
 ---
 
 # Setup GitHub Actions
@@ -78,58 +78,11 @@ Create the directory if it does not exist.
 
 ### 6. Write workflow files
 
-Which files to write:
+Which files to write — tests run only on PRs, never on push to `dev`:
 
-| Strategy | 2-tier | 3-tier |
+| | 2-tier | 3-tier |
 |---|---|---|
-| Always | `push-tests.yml` + `release-to-prod.yml` | `push-tests.yml` + `release-to-qa.yml` + `release-to-prod.yml` |
-
----
-
-#### `push-tests.yml` — single repo
-
-```yaml
-name: Tests
-
-on:
-  push:
-    branches: [dev]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - <setup-step>
-      - run: <test-command>
-```
-
----
-
-#### `push-tests.yml` — monorepo (two jobs)
-
-```yaml
-name: Tests
-
-on:
-  push:
-    branches: [dev]
-
-jobs:
-  test-frontend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - <frontend-setup-step>
-      - run: <frontend-test-command>
-
-  test-backend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - <backend-setup-step>
-      - run: <backend-test-command>
-```
+| Files | `release-to-prod.yml` | `release-to-qa.yml` + `release-to-prod.yml` |
 
 ---
 

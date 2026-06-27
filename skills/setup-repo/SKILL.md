@@ -270,18 +270,25 @@ Write-Host "Git and GitHub setup complete."
 
 ### 4. Configure branch protection
 
-Ask the user:
+Read `docs/agents/branch-strategy.md` to determine the strategy tier.
 
+Ask the following questions — for 3-tier ask both, for 2-tier ask only the second:
+
+**3-tier only:**
+> Should PRs to `qa` require a manual approval before merging? (yes/no)
+
+**Always:**
 > Should PRs to `prod` require a manual approval before merging? (yes/no)
 
-Then run the following PowerShell script in a single call, substituting the user's answer (`yes` or `no`) for `$requireProdApproval`:
+Then run the following PowerShell script in a single call, substituting the answers:
 
 ```powershell
 $owner = gh api user --jq .login
 $repoName = Split-Path -Leaf (Get-Location)
 $strategyFile = "docs/agents/branch-strategy.md"
 $strategy = if (Test-Path $strategyFile) { Get-Content $strategyFile -Raw } else { "" }
-$requireProdApproval = "yes"  # or "no" — substitute user's answer here
+$requireQaApproval  = "yes"  # or "no" — substitute user's answer (3-tier only; set "no" for 2-tier)
+$requireProdApproval = "yes" # or "no" — substitute user's answer
 
 function Set-BranchProtection {
     param($branch, $approvalCount)
@@ -296,8 +303,15 @@ $prodApprovals = if ($requireProdApproval -eq "yes") { 1 } else { 0 }
 Set-BranchProtection -branch "prod" -approvalCount $prodApprovals
 
 if ($strategy -match "3-tier") {
-    Set-BranchProtection -branch "qa" -approvalCount 0
+    $qaApprovals = if ($requireQaApproval -eq "yes") { 1 } else { 0 }
+    Set-BranchProtection -branch "qa" -approvalCount $qaApprovals
 }
+
+# Append approval settings to branch-strategy.md for use by setup-github-actions
+Add-Content -Path $strategyFile -Value ""
+Add-Content -Path $strategyFile -Value "## CI settings"
+Add-Content -Path $strategyFile -Value "qa-requires-approval: $requireQaApproval"
+Add-Content -Path $strategyFile -Value "prod-requires-approval: $requireProdApproval"
 
 Write-Host "Branch protection configured."
 ```
