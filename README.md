@@ -29,8 +29,7 @@ Then install individual skills from the Claude Code skill browser.
 3. /setup-user  →  adds marketplaces, enables plugins, prints install checklist
 
 # New project (one-time):
-/setup-repo              →  Matt's setup + branch strategy config
-/setup-github-actions    →  generate .github/workflows/ CI files
+/setup-repo  →  branch strategy, branch protection, GitHub Actions CI files
 
 # Every session:
 /context-engineering  →  briefs the agent on git history, open issues, TODOs

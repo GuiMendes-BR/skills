@@ -302,9 +302,13 @@ if ($strategy -match "3-tier") {
 Write-Host "Branch protection configured."
 ```
 
-### 5. Done
+### 5. Run GitHub Actions setup
 
-Tell the user: "Project is set up. Available workflow commands:
+Invoke the `/setup-github-actions` skill now. Wait for it to complete before continuing.
+
+### 6. Done
+
+Tell the user: "Project is fully set up including GitHub Actions. Available workflow commands:
 - `/ship-issue #N` — commit and push to `dev`, comment on issue
 - `/release-to-qa` — open a PR promoting `dev → qa` (3-tier only)
 - `/release-to-prod` — open a PR promoting `qa → prod` (3-tier only)"
