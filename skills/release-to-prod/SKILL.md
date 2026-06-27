@@ -1,46 +1,48 @@
 ---
 name: release-to-prod
-description: Open a PR from qa → prod for 3-tier projects. Auto-detects promoted issues from commit history. Usage: /release-to-prod
+description: Open a PR to prod. On 3-tier projects promotes qa → prod; on 2-tier promotes dev → prod. Auto-detects promoted issues from commit history. Usage: /release-to-prod
 ---
 
 # Release to Prod
 
-Open a PR promoting `qa` to `prod` with auto-detected issue numbers and titles.
+Open a PR promoting to `prod` with auto-detected issue numbers and titles. Works for both 2-tier (`dev → prod`) and 3-tier (`qa → prod`) projects.
 
 ## Process
 
 ### 1. Read branch strategy
 
-Read `docs/agents/branch-strategy.md`. If the strategy line reads `2-tier`, stop:
+Read `docs/agents/branch-strategy.md` and determine the strategy tier:
 
-> This project uses a 2-tier strategy (`dev → prod`) — there is no `qa` branch to promote from. Open a PR from `dev → prod` directly:
-> `gh pr create --base prod --head dev`
+- **2-tier** (`dev → prod`): the source branch is `dev`
+- **3-tier** (`dev → qa → prod`): the source branch is `qa`
+
+Use `$source` to refer to the source branch throughout the remaining steps.
 
 ### 2. Check for existing PR
 
 ```bash
-gh pr list --base prod --head qa --json number,url --jq '.[0]'
+gh pr list --base prod --head $source --json number,url --jq '.[0]'
 ```
 
 If the result is not null, stop:
 
-> A PR from `qa → prod` already exists: <url>
+> A PR from `$source → prod` already exists: <url>
 > Merge or close it before opening a new one.
 
 ### 3. Detect commits to promote
 
 ```bash
-git log prod..qa --oneline
+git log prod..$source --oneline
 ```
 
 If the output is empty, stop:
 
-> Nothing to promote — `qa` has no commits ahead of `prod`.
+> Nothing to promote — `$source` has no commits ahead of `prod`.
 
 ### 4. Parse promoted issue numbers
 
 ```bash
-git log prod..qa --pretty=format:"%B"
+git log prod..$source --pretty=format:"%B"
 ```
 
 Extract every `Closes #N` reference from the output. Collect unique issue numbers in the order they appear.
@@ -71,7 +73,7 @@ Closes #<N2> — <title2>
 ### 7. Create the PR
 
 ```bash
-gh pr create --base prod --head qa --title "<title>" --body "<body>"
+gh pr create --base prod --head $source --title "<title>" --body "<body>"
 ```
 
 ### 8. Report
