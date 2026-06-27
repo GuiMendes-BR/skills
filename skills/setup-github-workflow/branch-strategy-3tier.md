@@ -25,5 +25,5 @@ PRs are used only for promotions. Never push directly to `qa` or `prod`.
 
 ## GitHub Actions (future — not yet configured)
 - [ ] .github/workflows/push-tests.yml   — run tests on every push to dev
-- [ ] .github/workflows/promote-qa.yml   — run tests when dev is merged to qa
-- [ ] .github/workflows/release-prod.yml — require manual approval for qa → prod
+- [ ] .github/workflows/release-to-qa.yml   — run tests when dev is merged to qa
+- [ ] .github/workflows/release-to-prod.yml — require manual approval for qa → prod

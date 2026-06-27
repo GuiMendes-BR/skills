@@ -80,7 +80,7 @@ Which files to write:
 
 | Strategy | 2-tier | 3-tier |
 |---|---|---|
-| Always | `push-tests.yml` + `release-prod.yml` | `push-tests.yml` + `promote-qa.yml` + `release-prod.yml` |
+| Always | `push-tests.yml` + `release-to-prod.yml` | `push-tests.yml` + `release-to-qa.yml` + `release-to-prod.yml` |
 
 ---
 
@@ -131,7 +131,7 @@ jobs:
 
 ---
 
-#### `release-prod.yml` — single repo
+#### `release-to-prod.yml` — single repo
 
 ```yaml
 name: Release gate
@@ -155,7 +155,7 @@ jobs:
 
 ---
 
-#### `release-prod.yml` — monorepo (two jobs)
+#### `release-to-prod.yml` — monorepo (two jobs)
 
 ```yaml
 name: Release gate
@@ -186,7 +186,7 @@ jobs:
 
 ---
 
-#### `promote-qa.yml` — single repo (3-tier only)
+#### `release-to-qa.yml` — single repo (3-tier only)
 
 ```yaml
 name: QA gate
@@ -206,7 +206,7 @@ jobs:
 
 ---
 
-#### `promote-qa.yml` — monorepo (3-tier only, two jobs)
+#### `release-to-qa.yml` — monorepo (3-tier only, two jobs)
 
 ```yaml
 name: QA gate

@@ -23,4 +23,4 @@ PRs are used only for promotions. Never push directly to `prod`.
 
 ## GitHub Actions (future — not yet configured)
 - [ ] .github/workflows/push-tests.yml   — run tests on every push to dev
-- [ ] .github/workflows/release-prod.yml — run tests + require approval for dev → prod
+- [ ] .github/workflows/release-to-prod.yml — run tests + require approval for dev → prod
