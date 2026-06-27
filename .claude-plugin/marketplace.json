@@ -18,7 +18,7 @@
         "./skills/setup-user",
         "./skills/setup-repo",
         "./skills/setup-github-workflow",
-        "./skills/push-to-dev",
+        "./skills/ship-issue",
         "./skills/setup-github-actions",
         "./skills/release-to-qa",
         "./skills/release-to-prod"

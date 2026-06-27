@@ -1,15 +1,15 @@
 ---
-name: push-to-dev
-description: Stage, commit, and push changes to dev, then comment on the linked GitHub issue. Invoking this skill is the authorization gate — it commits and pushes automatically. Usage: /push-to-dev <issue-number>
+name: ship-issue
+description: Stage, commit, and push changes to dev, then comment on the linked GitHub issue. Invoking this skill is the authorization gate — it commits and pushes automatically. Usage: /ship-issue <issue-number>
 ---
 
-# Push to Dev
+# Ship Issue
 
 Commit and push changes to `dev`, then comment on the GitHub issue. Invoking this skill explicitly is the authorization — it stages, commits, and pushes without further confirmation.
 
 ## Process
 
-Tell the user upfront: "You have explicitly invoked /push-to-dev. This will commit your changes and push to `dev`, then comment on the GitHub issue."
+Tell the user upfront: "You have explicitly invoked /ship-issue. This will commit your changes and push to `dev`, then comment on the GitHub issue."
 
 ### 1. Read project config
 
@@ -36,7 +36,7 @@ git branch --show-current
 
 If the result is not `dev`, stop and warn the user:
 
-> You're on `<branch>`, not `dev`. Switch to `dev` and re-run `/push-to-dev #<number>`.
+> You're on `<branch>`, not `dev`. Switch to `dev` and re-run `/ship-issue #<number>`.
 
 Do not proceed until the user is on `dev`.
 
@@ -54,7 +54,7 @@ git diff --cached --quiet
 
 If nothing is staged, stop and warn the user:
 
-> Nothing to commit — no tracked changes found. Make your changes and re-run `/push-to-dev #<number>`.
+> Nothing to commit — no tracked changes found. Make your changes and re-run `/ship-issue #<number>`.
 
 Do not proceed.
 
