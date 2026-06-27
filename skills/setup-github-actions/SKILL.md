@@ -23,11 +23,11 @@ Ask the user:
 
 > Is this a monorepo or a single-repo project?
 > - **Single repo** — one project, one root
-> - **Monorepo** — multiple apps in `frontend/` and `backend/` subdirectories
+> - **Monorepo** — separate `frontend/` and `backend/` subdirectories
 
-### 3. Ask: project type
+### 3. Ask: project type(s)
 
-Ask the user:
+**If single repo**, ask:
 
 > What type of project is this?
 > - **Python Flask**
@@ -36,17 +36,22 @@ Ask the user:
 > - **Python Streamlit**
 > - **Other**
 
-### 4. Ask: trigger strategy
+**If monorepo**, ask two separate questions:
 
-Ask the user:
+> What type is the **frontend** (`frontend/` directory)?
+> - **React**
+> - **Other**
 
-> Which CI strategy do you want?
-> - **A) Push to dev + PR to prod** — tests run on every push to `dev` AND when opening a promotion PR
-> - **B) PR to prod only** — tests run only when opening a promotion PR
+Then:
 
-### 5. Resolve test command and setup step
+> What type is the **backend** (`backend/` directory)?
+> - **Python Flask**
+> - **Python Streamlit**
+> - **Other**
 
-Based on answers from steps 2 and 3, use this lookup table:
+### 4. Resolve test commands and setup steps
+
+Use this lookup table to determine `<setup-step>` and `<test-command>` for each project side:
 
 | Project type | Setup step | Single repo command | Monorepo command |
 |---|---|---|---|
@@ -63,24 +68,23 @@ For **Chrome Extension**, prepend this comment block above the `run:` step in ev
       # Headless Chrome does not support --load-extension. Run E2E tests locally.
 ```
 
-### 6. Create `.github/workflows/` directory
+For **monorepo**, resolve separate setup steps and test commands for both frontend and backend.
+
+### 5. Create `.github/workflows/` directory
 
 Create the directory if it does not exist.
 
-### 7. Write workflow files
+### 6. Write workflow files
 
 Which files to write:
 
-| | 2-tier | 3-tier |
+| Strategy | 2-tier | 3-tier |
 |---|---|---|
-| Strategy A | `push-tests.yml` + `release-prod.yml` | `push-tests.yml` + `promote-qa.yml` + `release-prod.yml` |
-| Strategy B | `release-prod.yml` | `promote-qa.yml` + `release-prod.yml` |
-
-Write each file substituting `<setup-step>` and `<test-command>` from the table in step 5.
+| Always | `push-tests.yml` + `release-prod.yml` | `push-tests.yml` + `promote-qa.yml` + `release-prod.yml` |
 
 ---
 
-#### `push-tests.yml` (Strategy A only)
+#### `push-tests.yml` — single repo
 
 ```yaml
 name: Tests
@@ -100,7 +104,34 @@ jobs:
 
 ---
 
-#### `release-prod.yml`
+#### `push-tests.yml` — monorepo (two jobs)
+
+```yaml
+name: Tests
+
+on:
+  push:
+    branches: [dev]
+
+jobs:
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - <frontend-setup-step>
+      - run: <frontend-test-command>
+
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - <backend-setup-step>
+      - run: <backend-test-command>
+```
+
+---
+
+#### `release-prod.yml` — single repo
 
 ```yaml
 name: Release gate
@@ -124,7 +155,38 @@ jobs:
 
 ---
 
-#### `promote-qa.yml` (3-tier only)
+#### `release-prod.yml` — monorepo (two jobs)
+
+```yaml
+name: Release gate
+
+on:
+  pull_request:
+    branches: [prod]
+
+jobs:
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - <frontend-setup-step>
+      - run: <frontend-test-command>
+
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - <backend-setup-step>
+      - run: <backend-test-command>
+
+# Note: to require manual approval before merging to prod, configure a
+# GitHub Environment with required reviewers in your repository settings.
+# This feature requires the GitHub Team plan or higher.
+```
+
+---
+
+#### `promote-qa.yml` — single repo (3-tier only)
 
 ```yaml
 name: QA gate
@@ -144,7 +206,34 @@ jobs:
 
 ---
 
-### 8. Done
+#### `promote-qa.yml` — monorepo (3-tier only, two jobs)
+
+```yaml
+name: QA gate
+
+on:
+  pull_request:
+    branches: [qa]
+
+jobs:
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - <frontend-setup-step>
+      - run: <frontend-test-command>
+
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - <backend-setup-step>
+      - run: <backend-test-command>
+```
+
+---
+
+### 7. Done
 
 Tell the user which files were created, then say:
 
