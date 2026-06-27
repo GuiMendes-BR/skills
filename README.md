@@ -31,9 +31,6 @@ Then install individual skills from the Claude Code skill browser.
 # New project (one-time):
 /setup-repo  →  branch strategy, branch protection, GitHub Actions CI files
 
-# Every session:
-/context-engineering  →  briefs the agent on git history, open issues, TODOs
-
 # Per feature:
 /to-issues     →  create GitHub issues from a plan
 /implement #N  →  commit to dev locally
