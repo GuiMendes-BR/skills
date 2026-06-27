@@ -21,6 +21,5 @@ PRs are used only for promotions. Never push directly to `prod`.
 - dev → prod: manual PR with human review. Include `Closes #<number>` in the PR body
   for each issue implemented since the last release — GitHub closes them automatically on merge.
 
-## GitHub Actions (future — not yet configured)
-- [ ] .github/workflows/push-tests.yml   — run tests on every push to dev
-- [ ] .github/workflows/release-to-prod.yml — run tests + require approval for dev → prod
+## GitHub Actions
+- `.github/workflows/release-to-prod.yml` — runs tests on PRs to `prod`

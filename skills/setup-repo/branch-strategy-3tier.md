@@ -23,7 +23,6 @@ PRs are used only for promotions. Never push directly to `qa` or `prod`.
   for each issue implemented since the last release — GitHub closes them automatically on merge.
 - qa → prod: manual PR after release approval.
 
-## GitHub Actions (future — not yet configured)
-- [ ] .github/workflows/push-tests.yml   — run tests on every push to dev
-- [ ] .github/workflows/release-to-qa.yml   — run tests when dev is merged to qa
-- [ ] .github/workflows/release-to-prod.yml — require manual approval for qa → prod
+## GitHub Actions
+- `.github/workflows/release-to-qa.yml`   — runs tests on PRs to `qa`
+- `.github/workflows/release-to-prod.yml` — runs tests on PRs to `prod`

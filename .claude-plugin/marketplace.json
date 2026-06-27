@@ -11,15 +11,13 @@
   "plugins": [
     {
       "name": "gmo-skills",
-      "description": "Four skills for bootstrapping machines, configuring repos with branch strategy, and shipping issues to GitHub",
+      "description": "Skills for bootstrapping machines, configuring repos with branch strategy, and shipping issues to GitHub",
       "source": "./",
       "strict": false,
       "skills": [
         "./skills/setup-user",
         "./skills/setup-repo",
-        "./skills/setup-github-workflow",
         "./skills/ship-issue",
-        "./skills/setup-github-actions",
         "./skills/release-to-qa",
         "./skills/release-to-prod"
       ]
