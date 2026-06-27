@@ -12,7 +12,7 @@ Claude Code skill marketplace — extends the Matt Pocock engineering workflow w
 | `ship-issue` | Stage, commit, and push changes to dev, then comment on the linked GitHub issue |
 | `setup-github-actions` | Generate GitHub Actions workflow files based on branch strategy, project type, and CI trigger preference |
 | `release-to-qa` | Open a PR promoting `dev → qa` with auto-detected issues (3-tier only) |
-| `release-to-prod` | Open a PR promoting `qa → prod` with auto-detected issues (3-tier only) |
+| `release-to-prod` | Open a PR to `prod` with auto-detected issues — promotes `qa → prod` on 3-tier, `dev → prod` on 2-tier |
 
 ## Installation
 
@@ -54,5 +54,5 @@ Then install individual skills from the Claude Code skill browser.
 /release-to-prod →  open PR qa → prod with auto-detected issues
 
 # Promotion (2-tier):
-Open PR: dev → prod with "Closes #N" in body
+/release-to-prod →  open PR dev → prod with auto-detected issues
 ```
