@@ -1,6 +1,6 @@
 ---
 name: setup-user
-description: Bootstrap a new machine with all required Claude Code marketplaces, plugins, and skill install instructions. Run once after manually adding gmo-skills to settings.json.
+description: Bootstrap a new machine with all required Claude Code marketplaces, plugins, and skill install instructions. Run once after adding gmo-skills via /plugins add github:GuiMendes-BR/skills.
 ---
 
 # Setup User

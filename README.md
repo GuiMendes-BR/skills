@@ -14,15 +14,8 @@ Claude Code skill marketplace — extends the Matt Pocock engineering workflow w
 
 ## Installation
 
-Add this marketplace to `~/.claude/settings.json`:
-
-```json
-"gmo-skills": {
-  "source": {
-    "source": "github",
-    "repo": "GuiMendes-BR/skills"
-  }
-}
+```
+/plugins add github:GuiMendes-BR/skills
 ```
 
 Then install individual skills from the Claude Code skill browser.
@@ -31,8 +24,8 @@ Then install individual skills from the Claude Code skill browser.
 
 ```
 # New machine (one-time):
-1. Add gmo-skills to ~/.claude/settings.json (manual)
-2. Install setup-user from gmo-skills
+1. /plugins add github:GuiMendes-BR/skills
+2. Install setup-user from the skill browser
 3. /setup-user  →  adds marketplaces, enables plugins, prints install checklist
 
 # New project (one-time):
