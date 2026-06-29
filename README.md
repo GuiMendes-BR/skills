@@ -8,7 +8,7 @@ Claude Code skill marketplace — extends the Matt Pocock engineering workflow w
 |-------|-------------|
 | `setup-user` | Bootstrap a new machine with all required marketplaces, plugins, and skill install instructions |
 | `setup-repo` | One-time per-project setup: gathers preferences, then runs one idempotent script for agent config, branch strategy, git/GitHub, branch protection, and GitHub Actions |
-| `ship-issue` | Stage, commit, and push changes to dev, then comment on the linked GitHub issue |
+| `ship-issue` | Stage, commit, and push changes to dev, then close the linked GitHub issue |
 | `release-to-qa` | Open a PR releasing `dev → qa` with auto-detected issues (3-tier only) |
 | `release-to-prod` | Open a PR to `prod` with auto-detected issues — releases `qa → prod` on 3-tier, `dev → prod` on 2-tier |
 
@@ -34,7 +34,7 @@ Then install individual skills from the Claude Code skill browser.
 # Per feature:
 /to-issues     →  create GitHub issues from a plan
 /implement #N  →  commit to dev locally
-/ship-issue #N →  commit, push to dev, comment on issue
+/ship-issue #N →  commit, push to dev, close issue
 
 # Release (3-tier):
 /release-to-qa   →  open PR dev → qa with auto-detected issues

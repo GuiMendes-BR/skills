@@ -1,15 +1,15 @@
 ---
 name: ship-issue
-description: Stage, commit, and push changes to dev, then comment on the linked GitHub issue. Invoking this skill is the authorization gate — it commits and pushes automatically. Usage: /ship-issue <issue-number>
+description: Stage, commit, and push changes to dev, then close the linked GitHub issue. Invoking this skill is the authorization gate — it commits and pushes automatically. Usage: /ship-issue <issue-number>
 ---
 
 # Ship Issue
 
-Commit and push changes to `dev`, then comment on the GitHub issue. Invoking this skill explicitly is the authorization — it stages, commits, and pushes without further confirmation.
+Commit and push changes to `dev`, then close the GitHub issue. Invoking this skill explicitly is the authorization — it stages, commits, and pushes without further confirmation.
 
 ## Process
 
-Tell the user upfront: "You have explicitly invoked /ship-issue. This will commit your changes and push to `dev`, then comment on the GitHub issue."
+Tell the user upfront: "You have explicitly invoked /ship-issue. This will commit your changes and push to `dev`, then close the GitHub issue."
 
 ### 1. Read project config
 
@@ -80,7 +80,13 @@ Closes #<number>"
 git push origin dev --no-verify
 ```
 
-### 8. Comment on issue
+If the push fails (rejected, network error, etc.), stop and warn the user:
+
+> Push to `dev` failed — your changes are committed locally but not on the remote. Issue #<number> was left open. Resolve the push and re-run `/ship-issue #<number>`.
+
+Do not close the issue. The close runs only after a confirmed successful push.
+
+### 8. Close the issue
 
 Get the commit hash:
 
@@ -88,15 +94,17 @@ Get the commit hash:
 git rev-parse HEAD
 ```
 
-Post the comment:
+Close the issue with an implementation note in one call:
 
 ```bash
-gh issue comment <number> --body "Implemented in \`<hash>\` — pushed to \`dev\`. Will be closed when released to prod."
+gh issue close <number> --comment "Implemented in \`<hash>\` — pushed to \`dev\`."
 ```
+
+This is best-effort: if the issue is already closed (e.g. you're shipping a follow-up fix), `gh` prints an "already closed" warning — ignore it and continue. The push already succeeded, so the work is shipped regardless.
 
 ### 9. Report
 
 Tell the user:
 
-> Done. Changes committed and pushed to `dev`. Issue #<number> has been commented with the commit hash.
-> Remember to include `Closes #<number>` in the body of your release PR (dev → prod or dev → qa) so GitHub closes it automatically on merge.
+> Done. Changes committed and pushed to `dev`, and issue #<number> has been closed.
+> The commit still carries `Closes #<number>`, so your release PR (dev → prod or dev → qa) will list it as a changelog entry — no action needed.

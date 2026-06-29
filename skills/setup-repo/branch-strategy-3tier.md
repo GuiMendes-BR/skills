@@ -19,8 +19,9 @@ Each issue implementation should be a single commit on `dev` for easy revert if 
 
 PRs are used only for releases. Never push directly to `qa` or `prod`.
 
-- dev → qa: manual PR after QA sign-off. Include `Closes #<number>` in the PR body
-  for each issue implemented since the last release — GitHub closes them automatically on merge.
+- dev → qa: manual PR after QA sign-off. The `release-to-qa` skill generates the PR body,
+  listing each issue released since the last release as `Closes #<number>`. Issues are already
+  closed when they ship to `dev`, so these lines serve as a changelog of what the release carries.
 - qa → prod: manual PR after release approval.
 
 ## GitHub Actions
