@@ -1,11 +1,11 @@
 ---
 name: release-to-prod
-description: Open a PR to prod. On 3-tier projects releases qa → prod; on 2-tier releases dev → prod. Auto-detects released issues from commit history. Usage: /release-to-prod
+description: Release to prod by merging directly — no PR. On 2-tier releases dev → prod after a local test gate; on 3-tier releases qa → prod without re-running the gate (already tested at dev → qa). Tags each release for rollback. Usage: /release-to-prod
 ---
 
 # Release to Prod
 
-Open a PR releasing to `prod` with auto-detected issue numbers and titles. Works for both 2-tier (`dev → prod`) and 3-tier (`qa → prod`) projects.
+Release to `prod` by merging directly — there is no pull request. Auto-detects released issues from commit history and tags the release for rollback.
 
 ## Process
 
@@ -13,25 +13,17 @@ Open a PR releasing to `prod` with auto-detected issue numbers and titles. Works
 
 Read `docs/agents/branch-strategy.md` and determine the strategy tier:
 
-- **2-tier** (`dev → prod`): the source branch is `dev`
-- **3-tier** (`dev → qa → prod`): the source branch is `qa`
+- **2-tier** (`dev → prod`): the source branch is `dev`. This hop **runs the test gate** (step 3).
+- **3-tier** (`dev → qa → prod`): the source branch is `qa`. This hop is **gate-free** — the tests already ran at `dev → qa`, so they are NOT re-run here.
 
-Use `$source` to refer to the source branch throughout the remaining steps.
+Use `$source` to refer to the source branch throughout. Also read the `test-command:` line — you need it for the 2-tier gate.
 
-### 2. Check for existing PR
-
-```bash
-gh pr list --base prod --head $source --json number,url --jq '.[0]'
-```
-
-If the result is not null, stop:
-
-> A PR from `$source → prod` already exists: <url>
-> Merge or close it before opening a new one.
-
-### 3. Detect commits to release
+### 2. Sync and detect commits to release
 
 ```bash
+git fetch origin
+git checkout $source
+git pull origin $source
 git log prod..$source --oneline
 ```
 
@@ -39,46 +31,69 @@ If the output is empty, stop:
 
 > Nothing to release — `$source` has no commits ahead of `prod`.
 
-### 4. Parse released issue numbers
+### 3. Run the test gate (2-tier only)
+
+**Skip this step entirely on 3-tier** — `qa → prod` does not re-run the gate.
+
+On 2-tier, run the `test-command` from branch strategy in the repo root. If it exits non-zero, do NOT proceed silently — report the failure and ask:
+
+> <N> test(s) failing. Merge to `prod` anyway? (y/N)
+
+Continue only if the user explicitly answers yes. If they answer no, stop.
+
+### 4. Show the diff and changelog
+
+Show the user what they're about to ship:
 
 ```bash
+git diff prod..$source --stat
 git log prod..$source --pretty=format:"%B"
 ```
 
-Extract every `Closes #N` reference from the output. Collect unique issue numbers in the order they appear.
-
-### 5. Fetch issue titles
-
-For each issue number N, run:
+Extract every `Closes #N` reference, collect unique issue numbers in the order they appear, and fetch each title:
 
 ```bash
 gh issue view <N> --json title --jq '.title'
 ```
 
-### 6. Build PR title and body
+Present the changelog (one `#N — title` line per issue) and ask:
 
-Title — comma-separated issue numbers:
+> Ship <N> issue(s) to `prod`? (y/N)
 
-```
-Release #<N1>, #<N2>, #<N3> to prod
-```
+Continue only on an explicit yes.
 
-Body — one line per issue:
-
-```
-Closes #<N1> — <title1>
-Closes #<N2> — <title2>
-```
-
-### 7. Create the PR
+### 5. Merge to prod
 
 ```bash
-gh pr create --base prod --head $source --title "<title>" --body "<body>"
+git checkout prod
+git pull origin prod
+git merge --no-ff $source -m "Release to prod
+
+<changelog: one 'Closes #N — title' line per issue>"
+git push origin prod
+```
+
+If the push fails (rejected, network error, etc.), stop and report — nothing is tagged until the push succeeds.
+
+### 6. Tag the release for rollback
+
+Tag with today's date (`prod-YYYY-MM-DD`). If that tag already exists — a second release the same day — append `-2`, `-3`, etc.:
+
+```bash
+git tag -a prod-YYYY-MM-DD -m "<changelog>"
+git push origin prod-YYYY-MM-DD
+```
+
+### 7. Return to dev
+
+```bash
+git checkout dev
 ```
 
 ### 8. Report
 
 Tell the user:
 
-> PR opened: <url>
-> Releasing issues: #N1 <title1>, #N2 <title2>
+> Released to `prod` and tagged `prod-YYYY-MM-DD`.
+> Shipped: #N1 <title1>, #N2 <title2>
+> Roll back with: `git checkout prod-YYYY-MM-DD`

@@ -14,8 +14,6 @@
 param(
     [Parameter(Mandatory)][ValidateSet('2', '3')][string]$Tier,
     [Parameter(Mandatory)][ValidateSet('single', 'monorepo')][string]$RepoStructure,
-    [Parameter(Mandatory)][ValidateSet('yes', 'no')][string]$ProdApproval,
-    [ValidateSet('yes', 'no')][string]$QaApproval = 'no',
     [string]$ProjectType,
     [string]$Frontend,
     [string]$Backend
@@ -158,7 +156,7 @@ Copy-Item $tierSrc "docs/agents/branch-strategy.md" -Force
 $claude = Get-Content "CLAUDE.md" -Raw
 if ($claude -notmatch '### Branch strategy') {
     $tierDesc = if ($Tier -eq '3') { '3-tier: dev -> qa -> prod' } else { '2-tier: dev -> prod' }
-    Add-Content "CLAUDE.md" "`n### Branch strategy`n`n[$tierDesc]. Work commits directly to ``dev``; PRs are used only for releases. See ``docs/agents/branch-strategy.md``."
+    Add-Content "CLAUDE.md" "`n### Branch strategy`n`n[$tierDesc]. Work commits directly to ``dev``; releases merge directly after a local test gate -- no PRs. See ``docs/agents/branch-strategy.md``."
 }
 
 # --- Stage 3 - git + GitHub (idempotent) ---
@@ -289,100 +287,42 @@ if ($Tier -eq '3') {
     git checkout dev
 }
 
-# --- Stage 4 - branch protection (idempotent) ---
-# Branch protection on a PRIVATE repo requires GitHub Pro/Team or higher.
-# On a free plan with a private repo, GitHub returns 403 ("Upgrade to GitHub Pro
-# or make this repository public to enable this feature"). That is a plan limit,
-# not a setup failure -- the PR-based release workflow still works without it,
-# so we warn and continue rather than aborting the whole run.
-$script:ProtectionSkipped = $false
-function Set-BranchProtection($branch, $approvalCount) {
-    $body = "{`"required_status_checks`":null,`"enforce_admins`":false,`"required_pull_request_reviews`":{`"required_approving_review_count`":$approvalCount,`"dismiss_stale_reviews`":false},`"restrictions`":null}"
-    $tmpFile = [System.IO.Path]::GetTempFileName()
-    Set-Content -Path $tmpFile -Value $body -Encoding utf8
-    $out = gh api "repos/$owner/$repoName/branches/$branch/protection" -X PUT --input $tmpFile 2>&1
-    $code = $LASTEXITCODE
-    Remove-Item $tmpFile
-    if ($code -ne 0) {
-        if ("$out" -match 'Upgrade to GitHub Pro|make this repository public') {
-            Write-Host "WARNING: skipped branch protection on '$branch' -- it requires GitHub Pro/Team for a private repo, or a public repo. Release only via PR; the workflow still works."
-            $script:ProtectionSkipped = $true
-        }
-        else {
-            Fail 'protection' "Failed to set branch protection on '$branch': $out"
-        }
+# --- Stage 4 - test command in agent config (idempotent) ---
+# The release skills run this command locally as the merge gate -- it is the single
+# source of truth for "are the tests green". There is no GitHub Actions / branch
+# protection: the gate lives in the skill, so no GitHub Pro plan is required.
+# Commands are lean (no install step) -- they assume deps are already installed in
+# the working tree where the release skill runs.
+function Resolve-TestCommand($type, $dir) {
+    $prefix = if ($dir) { "cd $dir && " } else { "" }
+    switch -Regex ($type) {
+        '^React$' { return "${prefix}npm test" }
+        '^Chrome Extension$' { return "${prefix}npm test" }
+        '^Python Flask$' { return "${prefix}pytest" }
+        '^Python Streamlit$' { return "${prefix}pytest" }
+        default { return "${prefix}echo 'No test command configured' && exit 1  # TODO: replace with your test command" }
     }
 }
 
-$prodApprovals = if ($ProdApproval -eq 'yes') { 1 } else { 0 }
-Set-BranchProtection "prod" $prodApprovals
-
-if ($Tier -eq '3') {
-    $qaApprovals = if ($QaApproval -eq 'yes') { 1 } else { 0 }
-    Set-BranchProtection "qa" $qaApprovals
+if ($RepoStructure -eq 'single') {
+    $testCmd = Resolve-TestCommand $ProjectType ''
+}
+else {
+    $fe = Resolve-TestCommand $Frontend 'frontend'
+    $be = Resolve-TestCommand $Backend 'backend'
+    $testCmd = "$fe && $be"
 }
 
 $strategyFile = "docs/agents/branch-strategy.md"
-if ((Get-Content $strategyFile -Raw) -notmatch '## CI settings') {
+if ((Get-Content $strategyFile -Raw) -notmatch '## Test command') {
     Add-Content $strategyFile ""
-    Add-Content $strategyFile "## CI settings"
-    Add-Content $strategyFile "qa-requires-approval: $QaApproval"
-    Add-Content $strategyFile "prod-requires-approval: $ProdApproval"
+    Add-Content $strategyFile "## Test command"
+    Add-Content $strategyFile ""
+    Add-Content $strategyFile "The release skills run this locally as the merge gate (assumes deps are installed):"
+    Add-Content $strategyFile ""
+    Add-Content $strategyFile "    test-command: $testCmd"
 }
 
-# --- Stage 5 - workflow files (overwrite) ---
-$nodeSetup = "      - uses: actions/setup-node@v4`n        with:`n          node-version: 20"
-$pySetup = "      - uses: actions/setup-python@v5`n        with:`n          python-version: '3.11'"
-$chromeNote = "      # Note: E2E tests (loading the extension in Chrome) are skipped in CI.`n      # Headless Chrome does not support --load-extension. Run E2E tests locally."
-
-function Resolve-Build($type, $dir) {
-    $prefix = if ($dir) { "cd $dir && " } else { "" }
-    switch -Regex ($type) {
-        '^React$' { return @{ Setup = $nodeSetup; Run = "${prefix}npm ci && npm test"; Note = '' } }
-        '^Chrome Extension$' { return @{ Setup = $nodeSetup; Run = "${prefix}npm ci && npm test"; Note = $chromeNote } }
-        '^Python Flask$' { return @{ Setup = $pySetup; Run = "${prefix}pip install -r requirements.txt && pytest"; Note = '' } }
-        '^Python Streamlit$' { return @{ Setup = $pySetup; Run = "${prefix}pip install -r requirements.txt && pytest"; Note = '' } }
-        default { return @{ Setup = ''; Run = 'echo "No test command configured" # TODO: replace with your test command'; Note = '' } }
-    }
-}
-
-function Build-Steps($b) {
-    $lines = @("      - uses: actions/checkout@v4")
-    if ($b.Setup) { $lines += $b.Setup }
-    if ($b.Note) { $lines += $b.Note }
-    $lines += "      - run: $($b.Run)"
-    return ($lines -join "`n")
-}
-
-function Build-Workflow($name, $branch) {
-    $out = "name: $name`n`non:`n  pull_request:`n    branches: [$branch]`n`njobs:`n"
-    if ($RepoStructure -eq 'single') {
-        $b = Resolve-Build $ProjectType ''
-        $out += "  test:`n    runs-on: ubuntu-latest`n    steps:`n$(Build-Steps $b)`n"
-    }
-    else {
-        $bf = Resolve-Build $Frontend 'frontend'
-        $bb = Resolve-Build $Backend 'backend'
-        $out += "  test-frontend:`n    runs-on: ubuntu-latest`n    steps:`n$(Build-Steps $bf)`n`n"
-        $out += "  test-backend:`n    runs-on: ubuntu-latest`n    steps:`n$(Build-Steps $bb)`n"
-    }
-    return $out
-}
-
-$prodNote = "`n# Note: to require manual approval before merging to prod, configure a`n# GitHub Environment with required reviewers in your repository settings.`n# This feature requires the GitHub Team plan or higher.`n"
-
-New-Item -ItemType Directory -Force -Path ".github/workflows" | Out-Null
-$prodWf = (Build-Workflow 'Release gate' 'prod') + $prodNote
-Set-Content ".github/workflows/release-to-prod.yml" $prodWf -Encoding utf8
-
-if ($Tier -eq '3') {
-    $qaWf = Build-Workflow 'QA gate' 'qa'
-    Set-Content ".github/workflows/release-to-qa.yml" $qaWf -Encoding utf8
-}
-
-# --- Stage 6 - done ---
+# --- Stage 5 - done ---
 Write-Host ""
 Write-Host "SETUP COMPLETE"
-if ($script:ProtectionSkipped) {
-    Write-Host "NOTE: branch protection was skipped (GitHub plan limit). To enable it later, make the repo public or upgrade to GitHub Pro, then re-run /setup-repo."
-}

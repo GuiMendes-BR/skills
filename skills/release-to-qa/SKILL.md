@@ -1,11 +1,11 @@
 ---
 name: release-to-qa
-description: Open a PR from dev → qa for 3-tier projects. Auto-detects released issues from commit history. Usage: /release-to-qa
+description: Release dev → qa by merging directly — no PR. 3-tier projects only. Runs the local test gate, then merges and pushes. Usage: /release-to-qa
 ---
 
 # Release to QA
 
-Open a PR releasing `dev` to `qa` with auto-detected issue numbers and titles.
+Release `dev` to `qa` by merging directly — there is no pull request. This is the hop where the **test gate runs**.
 
 ## Process
 
@@ -15,20 +15,14 @@ Read `docs/agents/branch-strategy.md`. If the strategy line reads `2-tier`, stop
 
 > This project uses a 2-tier strategy (`dev → prod`) — there is no `qa` branch. Use `/release-to-prod` to release directly to `prod`.
 
-### 2. Check for existing PR
+Read the `test-command:` line — you run it as the gate.
+
+### 2. Sync and detect commits to release
 
 ```bash
-gh pr list --base qa --head dev --json number,url --jq '.[0]'
-```
-
-If the result is not null, stop:
-
-> A PR from `dev → qa` already exists: <url>
-> Merge or close it before opening a new one.
-
-### 3. Detect commits to release
-
-```bash
+git fetch origin
+git checkout dev
+git pull origin dev
 git log qa..dev --oneline
 ```
 
@@ -36,46 +30,51 @@ If the output is empty, stop:
 
 > Nothing to release — `dev` has no commits ahead of `qa`.
 
-### 4. Parse released issue numbers
+### 3. Run the test gate
+
+Run the `test-command` from branch strategy in the repo root. If it exits non-zero, do NOT proceed silently — report the failure and ask:
+
+> <N> test(s) failing. Merge to `qa` anyway? (y/N)
+
+Continue only if the user explicitly answers yes. If they answer no, stop.
+
+### 4. Show the diff and changelog
 
 ```bash
+git diff qa..dev --stat
 git log qa..dev --pretty=format:"%B"
 ```
 
-Extract every `Closes #N` reference from the output. Collect unique issue numbers in the order they appear.
-
-### 5. Fetch issue titles
-
-For each issue number N, run:
+Extract every `Closes #N` reference, collect unique issue numbers in the order they appear, and fetch each title:
 
 ```bash
 gh issue view <N> --json title --jq '.title'
 ```
 
-### 6. Build PR title and body
+Present the changelog (one `#N — title` line per issue) and ask:
 
-Title — comma-separated issue numbers:
+> Release <N> issue(s) to `qa`? (y/N)
 
-```
-Release #<N1>, #<N2>, #<N3> to QA
-```
+Continue only on an explicit yes.
 
-Body — one line per issue:
-
-```
-Closes #<N1> — <title1>
-Closes #<N2> — <title2>
-```
-
-### 7. Create the PR
+### 5. Merge to qa
 
 ```bash
-gh pr create --base qa --head dev --title "<title>" --body "<body>"
+git checkout qa
+git pull origin qa
+git merge --no-ff dev -m "Release to qa
+
+<changelog: one 'Closes #N — title' line per issue>"
+git push origin qa
+git checkout dev
 ```
 
-### 8. Report
+If the push fails (rejected, network error, etc.), stop and report.
+
+### 6. Report
 
 Tell the user:
 
-> PR opened: <url>
-> Releasing issues: #N1 <title1>, #N2 <title2>
+> Released to `qa`.
+> Released: #N1 <title1>, #N2 <title2>
+> Next: deploy `qa` to your staging environment and verify manually, then run `/release-to-prod` to release to `prod`.

@@ -13,7 +13,7 @@ The unit of work. A GitHub issue that one or more commits implement. It is close
 To land an issue's commits on `dev` — the first hop into the pipeline. Done by `ship-issue`: commit, push to `dev`, and close the issue. Shipping is what closes the issue; a closed issue means "implemented and on `dev`," not "live in prod."
 
 **Release**:
-To move already-shipped commits from one branch to the next via a pull request — `dev → qa`, `qa → prod`, or `dev → prod`. Done by `release-to-qa` / `release-to-prod`.
+To move already-shipped commits from one branch to the next by merging directly — there is no pull request. `dev → qa`, `qa → prod`, or `dev → prod`. Done by `release-to-qa` / `release-to-prod`, which run a local test gate (the `test-command` in branch strategy) before merging and then tag prod releases for rollback.
 _Avoid_: Promote, promotion.
 
 ### Pipeline
@@ -25,13 +25,13 @@ A branch in the release pipeline. In this project a tier is treated as synonymou
 The pipeline `dev → prod`. There is no `qa` branch.
 
 **3-tier**:
-The pipeline `dev → qa → prod`. The `qa` branch mainly exists as a place to run tests on the code before it reaches `prod`.
+The pipeline `dev → qa → prod`. The `qa` branch is a deployed staging environment where the running app is manually QA'd before it reaches `prod`. Opt into this tier only when a real staging environment exists; otherwise prefer 2-tier.
 
 **dev**:
 The integration branch — where every issue is first shipped.
 
 **qa**:
-The testing tier (3-tier only). Code released here so tests can run against it before `prod`.
+A deployed staging environment (3-tier only). Code released here is deployed so the running app can be manually QA'd before `prod`. The automated test gate runs on the hop *into* `qa` (`dev → qa`), not on `qa` itself.
 
 **prod**:
-The production tier — the final hop in the pipeline. The issues a release to `prod` carries were already closed when they shipped to `dev`; the release PR lists them only as a changelog.
+The production tier — the final hop in the pipeline. The issues a release to `prod` carries were already closed when they shipped to `dev`; the release's merge-commit message and rollback tag list them only as a changelog.

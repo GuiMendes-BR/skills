@@ -14,13 +14,14 @@ Strategy: 2-tier (dev → prod)
 Work commits directly to `dev`. There are no per-issue feature branches.
 Each issue implementation should be a single commit on `dev` for easy revert if needed.
 
-## Pull request targets
+## Releases
 
-PRs are used only for releases. Never push directly to `prod`.
+No pull requests. Releases merge directly after a local test gate.
 
-- dev → prod: manual PR with human review. The `release-to-prod` skill generates the PR body,
-  listing each issue released since the last release as `Closes #<number>`. Issues are already
-  closed when they ship to `dev`, so these lines serve as a changelog of what the release carries.
+- dev → prod: the `release-to-prod` skill runs the test command below as a gate (if tests
+  fail it asks before continuing), shows the accumulated `git diff prod..dev` and the
+  `Closes #<number>` changelog, then `git merge --no-ff` and pushes to `prod`. It tags each
+  release `prod-YYYY-MM-DD` for rollback. Issues are already closed when they ship to `dev`,
+  so the changelog lines record what the release carries.
 
-## GitHub Actions
-- `.github/workflows/release-to-prod.yml` — runs tests on PRs to `prod`
+The test gate runs on the hop out of `dev` (here, `dev → prod`).

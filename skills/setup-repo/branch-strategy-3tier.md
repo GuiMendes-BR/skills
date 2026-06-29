@@ -4,26 +4,28 @@ Strategy: 3-tier (dev → qa → prod)
 
 ## Branches
 
-| Branch | Purpose               | Releases to |
-|--------|-----------------------|-------------|
-| dev    | Active development    | qa          |
-| qa     | QA testing / staging  | prod        |
-| prod   | Production / main     | —           |
+| Branch | Purpose                          | Releases to |
+|--------|----------------------------------|-------------|
+| dev    | Active development               | qa          |
+| qa     | Deployed staging env (manual QA) | prod        |
+| prod   | Production / main                | —           |
 
 ## Commit convention
 
 Work commits directly to `dev`. There are no per-issue feature branches.
 Each issue implementation should be a single commit on `dev` for easy revert if needed.
 
-## Pull request targets
+## Releases
 
-PRs are used only for releases. Never push directly to `qa` or `prod`.
+No pull requests. Releases merge directly after a local test gate.
 
-- dev → qa: manual PR after QA sign-off. The `release-to-qa` skill generates the PR body,
-  listing each issue released since the last release as `Closes #<number>`. Issues are already
-  closed when they ship to `dev`, so these lines serve as a changelog of what the release carries.
-- qa → prod: manual PR after release approval.
+- dev → qa: the `release-to-qa` skill runs the test command below as a gate (if tests fail it
+  asks before continuing), shows `git diff qa..dev` and the `Closes #<number>` changelog, then
+  `git merge --no-ff` and pushes to `qa`. Deploy `qa` to your staging environment and verify
+  manually.
+- qa → prod: the `release-to-prod` skill does NOT re-run the test gate here — the code already
+  passed it at `dev → qa` and was manually QA'd on staging. It shows the diff and changelog,
+  merges `qa → prod`, pushes, and tags `prod-YYYY-MM-DD` for rollback.
 
-## GitHub Actions
-- `.github/workflows/release-to-qa.yml`   — runs tests on PRs to `qa`
-- `.github/workflows/release-to-prod.yml` — runs tests on PRs to `prod`
+The test gate runs on the hop out of `dev` (here, `dev → qa`). `qa` is a real deployed staging
+environment for manual QA — not a place where automated tests run.

@@ -7,10 +7,10 @@ Claude Code skill marketplace — extends the Matt Pocock engineering workflow w
 | Skill | Description |
 |-------|-------------|
 | `setup-user` | Bootstrap a new machine with all required marketplaces, plugins, and skill install instructions |
-| `setup-repo` | One-time per-project setup: gathers preferences, then runs one idempotent script for agent config, branch strategy, git/GitHub, branch protection, and GitHub Actions |
+| `setup-repo` | One-time per-project setup: gathers preferences, then runs one idempotent script for agent config, branch strategy, git/GitHub, and the local test-gate command |
 | `ship-issue` | Stage, commit, and push changes to dev, then close the linked GitHub issue |
-| `release-to-qa` | Open a PR releasing `dev → qa` with auto-detected issues (3-tier only) |
-| `release-to-prod` | Open a PR to `prod` with auto-detected issues — releases `qa → prod` on 3-tier, `dev → prod` on 2-tier |
+| `release-to-qa` | Merge `dev → qa` directly after the local test gate, with auto-detected issues (3-tier only) |
+| `release-to-prod` | Merge to `prod` directly with auto-detected issues — `qa → prod` (gate-free) on 3-tier, `dev → prod` (gated) on 2-tier — and tag the release for rollback |
 
 ## Installation
 
@@ -29,7 +29,7 @@ Then install individual skills from the Claude Code skill browser.
 3. /setup-user  →  adds marketplaces, enables plugins, prints install checklist
 
 # New project (one-time):
-/setup-repo  →  branch strategy, branch protection, GitHub Actions CI files
+/setup-repo  →  branch strategy, git/GitHub, local test-gate command
 
 # Per feature:
 /to-issues     →  create GitHub issues from a plan
@@ -37,9 +37,9 @@ Then install individual skills from the Claude Code skill browser.
 /ship-issue #N →  commit, push to dev, close issue
 
 # Release (3-tier):
-/release-to-qa   →  open PR dev → qa with auto-detected issues
-/release-to-prod →  open PR qa → prod with auto-detected issues
+/release-to-qa   →  test gate, then merge dev → qa directly; deploy qa to staging, QA manually
+/release-to-prod →  merge qa → prod directly (gate-free), tag the release
 
 # Release (2-tier):
-/release-to-prod →  open PR dev → prod with auto-detected issues
+/release-to-prod →  test gate, then merge dev → prod directly, tag the release
 ```

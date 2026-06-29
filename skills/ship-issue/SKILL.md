@@ -107,4 +107,4 @@ This is best-effort: if the issue is already closed (e.g. you're shipping a foll
 Tell the user:
 
 > Done. Changes committed and pushed to `dev`, and issue #<number> has been closed.
-> The commit still carries `Closes #<number>`, so your release PR (dev → prod or dev → qa) will list it as a changelog entry — no action needed.
+> The commit still carries `Closes #<number>`, so your next release (`/release-to-qa` or `/release-to-prod`) will list it in the merge-commit changelog — no action needed.

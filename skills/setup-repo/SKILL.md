@@ -1,6 +1,6 @@
 ---
 name: setup-repo
-description: One-time per-project setup. Gathers branch strategy, repo structure, and CI preferences, then runs a single idempotent script that configures agent config, git/GitHub, branch protection, and GitHub Actions. Run once at the start of each new project.
+description: One-time per-project setup. Gathers branch strategy, repo structure, and project type, then runs a single idempotent script that configures agent config, git/GitHub, and the local test-gate command. Run once at the start of each new project.
 ---
 
 # Setup Repo
@@ -22,18 +22,16 @@ Ask these two together (one `AskUserQuestion` call):
   - **Single repo** — one project, one root
   - **Monorepo** — separate `frontend/` and `backend/` subdirectories
 
-### 2. Ask the configuration questions
+### 2. Ask the project type
 
-Ask these together in a single `AskUserQuestion` call. Which questions to include depends on the answers from step 1:
+Releases merge directly after a local test gate — there are no PRs and no approval gates, so there is nothing to ask about approvals. Ask only the project type (it determines the `test-command` the release skills run):
 
-- **Prod approval** (always) — Should PRs to `prod` require a manual approval before merging? Options: **yes** / **no**.
-- **QA approval** (3-tier only) — Should PRs to `qa` require a manual approval before merging? Options: **yes** / **no**.
 - **Project type** — if **single repo**, ask one question; if **monorepo**, ask two (frontend and backend):
   - Single repo options: **Python Flask**, **React**, **Chrome Extension**, **Python Streamlit**, **Other**
   - Monorepo frontend options: **React**, **Other**
   - Monorepo backend options: **Python Flask**, **Python Streamlit**, **Other**
 
-The "Other" choice (and any custom value the user types) is fine — the script writes a `# TODO` test-command placeholder for unknown types.
+The "Other" choice (and any custom value the user types) is fine — the script writes a `# TODO` test-command placeholder for unknown types, which the user fills in by hand in `docs/agents/branch-strategy.md`.
 
 ### 3. Run the setup script
 
@@ -41,17 +39,16 @@ Call `setup.ps1` from this skill's directory once, passing every answer. Example
 
 **Single repo:**
 ```powershell
-& "<this-skill-dir>/setup.ps1" -Tier 3 -RepoStructure single -ProdApproval yes -QaApproval no -ProjectType "Python Flask"
+& "<this-skill-dir>/setup.ps1" -Tier 3 -RepoStructure single -ProjectType "Python Flask"
 ```
 
 **Monorepo:**
 ```powershell
-& "<this-skill-dir>/setup.ps1" -Tier 2 -RepoStructure monorepo -ProdApproval yes -Frontend React -Backend "Python Flask"
+& "<this-skill-dir>/setup.ps1" -Tier 2 -RepoStructure monorepo -Frontend React -Backend "Python Flask"
 ```
 
 Notes:
 - Replace `<this-skill-dir>` with the absolute path to the directory containing this `SKILL.md`.
-- Omit `-QaApproval` for 2-tier (it defaults to `no` and is ignored).
 - Pass the user's literal project-type answers; the script owns the test-command lookup.
 
 ### 4. Report the result
@@ -60,12 +57,9 @@ The script prints `SETUP COMPLETE` on success, or `SETUP FAILED at stage: <stage
 
 - **On success**, tell the user the project is fully set up and list the available workflow commands:
   - `/ship-issue #N` — commit and push to `dev`, comment on issue
-  - `/release-to-qa` — open a PR releasing `dev → qa` (3-tier only)
-  - `/release-to-prod` — open a PR releasing `qa → prod` (3-tier) or `dev → prod` (2-tier)
+  - `/release-to-qa` — merge `dev → qa` directly after the local test gate (3-tier only)
+  - `/release-to-prod` — merge `qa → prod` (3-tier, gate-free) or `dev → prod` (2-tier, gated) directly, and tag the release
 
-  If either branch was set to require approval, remind the user that GitHub Environment required-reviewer gates need the GitHub Team plan or higher.
-
-  If the script prints a `NOTE: branch protection was skipped` line, ignore it — the script will have already printed a warning about the missing GitHub plan.
-
+  Mention that releases run the test command in `docs/agents/branch-strategy.md` as a local gate — there are no PRs, no GitHub Actions, and no GitHub Pro requirement. If the project type was "Other", remind the user to replace the `# TODO` test-command placeholder in that file.
 
 - **On failure**, relay the failing stage and reason verbatim, help the user fix it, then re-run — the script is idempotent and safe to re-run.
