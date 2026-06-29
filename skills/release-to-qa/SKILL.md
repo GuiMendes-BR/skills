@@ -1,11 +1,11 @@
 ---
 name: release-to-qa
-description: Open a PR from dev → qa for 3-tier projects. Auto-detects promoted issues from commit history. Usage: /release-to-qa
+description: Open a PR from dev → qa for 3-tier projects. Auto-detects released issues from commit history. Usage: /release-to-qa
 ---
 
 # Release to QA
 
-Open a PR promoting `dev` to `qa` with auto-detected issue numbers and titles.
+Open a PR releasing `dev` to `qa` with auto-detected issue numbers and titles.
 
 ## Process
 
@@ -13,7 +13,7 @@ Open a PR promoting `dev` to `qa` with auto-detected issue numbers and titles.
 
 Read `docs/agents/branch-strategy.md`. If the strategy line reads `2-tier`, stop:
 
-> This project uses a 2-tier strategy (`dev → prod`) — there is no `qa` branch. Use `/release-to-prod` to promote directly to `prod`.
+> This project uses a 2-tier strategy (`dev → prod`) — there is no `qa` branch. Use `/release-to-prod` to release directly to `prod`.
 
 ### 2. Check for existing PR
 
@@ -26,7 +26,7 @@ If the result is not null, stop:
 > A PR from `dev → qa` already exists: <url>
 > Merge or close it before opening a new one.
 
-### 3. Detect commits to promote
+### 3. Detect commits to release
 
 ```bash
 git log qa..dev --oneline
@@ -34,9 +34,9 @@ git log qa..dev --oneline
 
 If the output is empty, stop:
 
-> Nothing to promote — `dev` has no commits ahead of `qa`.
+> Nothing to release — `dev` has no commits ahead of `qa`.
 
-### 4. Parse promoted issue numbers
+### 4. Parse released issue numbers
 
 ```bash
 git log qa..dev --pretty=format:"%B"
@@ -78,4 +78,4 @@ gh pr create --base qa --head dev --title "<title>" --body "<body>"
 Tell the user:
 
 > PR opened: <url>
-> Promoting issues: #N1 <title1>, #N2 <title2>
+> Releasing issues: #N1 <title1>, #N2 <title2>

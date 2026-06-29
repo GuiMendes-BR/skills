@@ -60,8 +60,8 @@ The script prints `SETUP COMPLETE` on success, or `SETUP FAILED at stage: <stage
 
 - **On success**, tell the user the project is fully set up and list the available workflow commands:
   - `/ship-issue #N` — commit and push to `dev`, comment on issue
-  - `/release-to-qa` — open a PR promoting `dev → qa` (3-tier only)
-  - `/release-to-prod` — open a PR promoting `qa → prod` (3-tier) or `dev → prod` (2-tier)
+  - `/release-to-qa` — open a PR releasing `dev → qa` (3-tier only)
+  - `/release-to-prod` — open a PR releasing `qa → prod` (3-tier) or `dev → prod` (2-tier)
 
   If either branch was set to require approval, remind the user that GitHub Environment required-reviewer gates need the GitHub Team plan or higher.
 

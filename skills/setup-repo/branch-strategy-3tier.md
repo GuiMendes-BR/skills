@@ -4,7 +4,7 @@ Strategy: 3-tier (dev → qa → prod)
 
 ## Branches
 
-| Branch | Purpose               | Promotes to |
+| Branch | Purpose               | Releases to |
 |--------|-----------------------|-------------|
 | dev    | Active development    | qa          |
 | qa     | QA testing / staging  | prod        |
@@ -17,7 +17,7 @@ Each issue implementation should be a single commit on `dev` for easy revert if 
 
 ## Pull request targets
 
-PRs are used only for promotions. Never push directly to `qa` or `prod`.
+PRs are used only for releases. Never push directly to `qa` or `prod`.
 
 - dev → qa: manual PR after QA sign-off. Include `Closes #<number>` in the PR body
   for each issue implemented since the last release — GitHub closes them automatically on merge.

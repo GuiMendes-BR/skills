@@ -91,7 +91,7 @@ git rev-parse HEAD
 Post the comment:
 
 ```bash
-gh issue comment <number> --body "Implemented in \`<hash>\` — pushed to \`dev\`. Will be closed when promoted to prod."
+gh issue comment <number> --body "Implemented in \`<hash>\` — pushed to \`dev\`. Will be closed when released to prod."
 ```
 
 ### 9. Report
@@ -99,4 +99,4 @@ gh issue comment <number> --body "Implemented in \`<hash>\` — pushed to \`dev\
 Tell the user:
 
 > Done. Changes committed and pushed to `dev`. Issue #<number> has been commented with the commit hash.
-> Remember to include `Closes #<number>` in the body of your promotion PR (dev → prod or dev → qa) so GitHub closes it automatically on merge.
+> Remember to include `Closes #<number>` in the body of your release PR (dev → prod or dev → qa) so GitHub closes it automatically on merge.

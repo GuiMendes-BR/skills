@@ -4,7 +4,7 @@ Strategy: 2-tier (dev → prod)
 
 ## Branches
 
-| Branch | Purpose            | Promotes to |
+| Branch | Purpose            | Releases to |
 |--------|--------------------|-------------|
 | dev    | Active development | prod        |
 | prod   | Production / main  | —           |
@@ -16,7 +16,7 @@ Each issue implementation should be a single commit on `dev` for easy revert if 
 
 ## Pull request targets
 
-PRs are used only for promotions. Never push directly to `prod`.
+PRs are used only for releases. Never push directly to `prod`.
 
 - dev → prod: manual PR with human review. Include `Closes #<number>` in the PR body
   for each issue implemented since the last release — GitHub closes them automatically on merge.

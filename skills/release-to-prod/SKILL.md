@@ -1,11 +1,11 @@
 ---
 name: release-to-prod
-description: Open a PR to prod. On 3-tier projects promotes qa → prod; on 2-tier promotes dev → prod. Auto-detects promoted issues from commit history. Usage: /release-to-prod
+description: Open a PR to prod. On 3-tier projects releases qa → prod; on 2-tier releases dev → prod. Auto-detects released issues from commit history. Usage: /release-to-prod
 ---
 
 # Release to Prod
 
-Open a PR promoting to `prod` with auto-detected issue numbers and titles. Works for both 2-tier (`dev → prod`) and 3-tier (`qa → prod`) projects.
+Open a PR releasing to `prod` with auto-detected issue numbers and titles. Works for both 2-tier (`dev → prod`) and 3-tier (`qa → prod`) projects.
 
 ## Process
 
@@ -29,7 +29,7 @@ If the result is not null, stop:
 > A PR from `$source → prod` already exists: <url>
 > Merge or close it before opening a new one.
 
-### 3. Detect commits to promote
+### 3. Detect commits to release
 
 ```bash
 git log prod..$source --oneline
@@ -37,9 +37,9 @@ git log prod..$source --oneline
 
 If the output is empty, stop:
 
-> Nothing to promote — `$source` has no commits ahead of `prod`.
+> Nothing to release — `$source` has no commits ahead of `prod`.
 
-### 4. Parse promoted issue numbers
+### 4. Parse released issue numbers
 
 ```bash
 git log prod..$source --pretty=format:"%B"
@@ -81,4 +81,4 @@ gh pr create --base prod --head $source --title "<title>" --body "<body>"
 Tell the user:
 
 > PR opened: <url>
-> Promoting issues: #N1 <title1>, #N2 <title2>
+> Releasing issues: #N1 <title1>, #N2 <title2>

@@ -158,7 +158,7 @@ Copy-Item $tierSrc "docs/agents/branch-strategy.md" -Force
 $claude = Get-Content "CLAUDE.md" -Raw
 if ($claude -notmatch '### Branch strategy') {
     $tierDesc = if ($Tier -eq '3') { '3-tier: dev -> qa -> prod' } else { '2-tier: dev -> prod' }
-    Add-Content "CLAUDE.md" "`n### Branch strategy`n`n[$tierDesc]. Work commits directly to ``dev``; PRs are used only for promotions. See ``docs/agents/branch-strategy.md``."
+    Add-Content "CLAUDE.md" "`n### Branch strategy`n`n[$tierDesc]. Work commits directly to ``dev``; PRs are used only for releases. See ``docs/agents/branch-strategy.md``."
 }
 
 # --- Stage 3 - git + GitHub (idempotent) ---
@@ -293,7 +293,7 @@ if ($Tier -eq '3') {
 # Branch protection on a PRIVATE repo requires GitHub Pro/Team or higher.
 # On a free plan with a private repo, GitHub returns 403 ("Upgrade to GitHub Pro
 # or make this repository public to enable this feature"). That is a plan limit,
-# not a setup failure -- the PR-based promotion workflow still works without it,
+# not a setup failure -- the PR-based release workflow still works without it,
 # so we warn and continue rather than aborting the whole run.
 $script:ProtectionSkipped = $false
 function Set-BranchProtection($branch, $approvalCount) {
@@ -305,7 +305,7 @@ function Set-BranchProtection($branch, $approvalCount) {
     Remove-Item $tmpFile
     if ($code -ne 0) {
         if ("$out" -match 'Upgrade to GitHub Pro|make this repository public') {
-            Write-Host "WARNING: skipped branch protection on '$branch' -- it requires GitHub Pro/Team for a private repo, or a public repo. Promote only via PR; the workflow still works."
+            Write-Host "WARNING: skipped branch protection on '$branch' -- it requires GitHub Pro/Team for a private repo, or a public repo. Release only via PR; the workflow still works."
             $script:ProtectionSkipped = $true
         }
         else {
