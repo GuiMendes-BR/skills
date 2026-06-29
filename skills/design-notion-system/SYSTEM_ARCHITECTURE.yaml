@@ -1,0 +1,602 @@
+system:
+  name: "Company CRM"
+  description: "Multi-team customer relationship management system for deal pipeline visibility and customer health tracking"
+  icon: "🚀"
+  version: "1.0"
+
+databases:
+  accounts:
+    display_name: "Accounts"
+    description: "Companies we work with across full lifecycle (prospect → active → churn)"
+    icon: "🏢"
+    emoji_color: "blue"
+    properties:
+      name:
+        type: "title"
+        description: "Company legal name"
+        required: true
+      status:
+        type: "select"
+        description: "Account lifecycle stage"
+        required: true
+        options:
+          - name: "Prospect"
+            color: "blue"
+          - name: "Active"
+            color: "green"
+          - name: "Churned"
+            color: "red"
+      industry:
+        type: "select"
+        description: "Industry classification for segmentation"
+        options:
+          - name: "SaaS"
+          - name: "Healthcare"
+          - name: "Finance"
+          - name: "Manufacturing"
+      mrr:
+        type: "number"
+        description: "Monthly recurring revenue from this account"
+      last_activity_date:
+        type: "date"
+        description: "Date of last customer interaction (auto-updated by Claude)"
+      health_score:
+        type: "number"
+        description: "1-10 customer health score based on support tickets and engagement"
+      contact_count:
+        type: "rollup"
+        description: "Number of contacts at this account"
+        relation_target: "contacts"
+        rollup_formula: "count()"
+      deal_count:
+        type: "rollup"
+        description: "Number of active deals"
+        relation_target: "deals"
+        rollup_formula: "count()"
+      total_mrr:
+        type: "rollup"
+        description: "Sum of all deal MRR"
+        relation_target: "deals"
+        rollup_formula: "sum(properties.mrr)"
+      contacts:
+        type: "relation"
+        description: "People at this company"
+        target_database: "contacts"
+        target_property: "account"
+      deals:
+        type: "relation"
+        description: "Deals with this account"
+        target_database: "deals"
+        target_property: "account"
+      tickets:
+        type: "relation"
+        description: "Support tickets for this account"
+        target_database: "support_tickets"
+        target_property: "account"
+    views:
+      - name: "Active Accounts"
+        type: "table"
+        visible_properties: ["name", "status", "health_score", "contact_count", "total_mrr"]
+        filters:
+          - property: "status"
+            condition: "equals"
+            value: "Active"
+        sort_by: "health_score"
+      - name: "By Industry"
+        type: "table"
+        visible_properties: ["name", "industry", "mrr", "deal_count"]
+        group_by: "industry"
+      - name: "At-Risk Accounts"
+        type: "table"
+        visible_properties: ["name", "health_score", "last_activity_date", "contact_count"]
+        filters:
+          - property: "health_score"
+            condition: "less_than"
+            value: 5
+          - property: "status"
+            condition: "equals"
+            value: "Active"
+    templates:
+      - name: "New Account"
+        description: "Template for onboarding a new account"
+        default_properties:
+          status: "Prospect"
+          health_score: 5
+
+  contacts:
+    display_name: "Contacts"
+    description: "Individual people at accounts"
+    icon: "👤"
+    emoji_color: "purple"
+    properties:
+      name:
+        type: "title"
+        description: "Contact full name"
+        required: true
+      email:
+        type: "email"
+        description: "Primary work email (used for enrichment)"
+        required: true
+      phone:
+        type: "phone_number"
+        description: "Primary work phone (often enriched by Claude)"
+      account:
+        type: "relation"
+        description: "Account this person belongs to"
+        target_database: "accounts"
+        required: true
+      role:
+        type: "select"
+        description: "Contact role/title"
+        options:
+          - name: "Decision Maker"
+          - name: "Influencer"
+          - name: "End User"
+          - name: "Unknown"
+      seniority:
+        type: "select"
+        description: "Seniority level"
+        options:
+          - name: "C-Level"
+          - name: "VP"
+          - name: "Manager"
+          - name: "Individual Contributor"
+      last_contacted:
+        type: "date"
+        description: "Date of last interaction (updated by Claude on activity creation)"
+      activity_count:
+        type: "rollup"
+        description: "Number of interactions with this contact"
+        relation_target: "activities"
+        rollup_formula: "count()"
+    views:
+      - name: "Decision Makers"
+        type: "table"
+        visible_properties: ["name", "email", "phone", "account", "last_contacted"]
+        filters:
+          - property: "role"
+            condition: "equals"
+            value: "Decision Maker"
+      - name: "By Account"
+        type: "gallery"
+        visible_properties: ["name", "role", "email", "phone"]
+        group_by: "account"
+
+  deals:
+    display_name: "Deals"
+    description: "Sales opportunities and pipeline"
+    icon: "💰"
+    emoji_color: "green"
+    properties:
+      title:
+        type: "title"
+        description: "Deal name/description"
+        required: true
+      stage:
+        type: "select"
+        description: "Deal pipeline stage"
+        required: true
+        options:
+          - name: "Prospect"
+            color: "blue"
+          - name: "Qualified"
+            color: "yellow"
+          - name: "Proposal"
+            color: "orange"
+          - name: "Negotiation"
+            color: "purple"
+          - name: "Won"
+            color: "green"
+          - name: "Lost"
+            color: "red"
+      mrr:
+        type: "number"
+        description: "Monthly recurring revenue"
+        required: true
+      arr:
+        type: "number"
+        description: "Annual recurring revenue (calculated)"
+      probability:
+        type: "select"
+        description: "Probability of closing"
+        options:
+          - name: "10%"
+          - name: "25%"
+          - name: "50%"
+          - name: "75%"
+          - name: "90%"
+      close_date:
+        type: "date"
+        description: "Expected close date"
+      actual_close_date:
+        type: "date"
+        description: "Actual close date (populated when won/lost)"
+      account:
+        type: "relation"
+        description: "Account this deal is with"
+        target_database: "accounts"
+        required: true
+      primary_contact:
+        type: "relation"
+        description: "Main contact for this deal"
+        target_database: "contacts"
+      sales_rep:
+        type: "select"
+        description: "Assigned sales rep"
+        options:
+          - name: "Rep 1"
+          - name: "Rep 2"
+          - name: "Rep 3"
+          - name: "Unassigned"
+      won_lost_date:
+        type: "date"
+        description: "Date deal was closed (won or lost)"
+      notes:
+        type: "rich_text"
+        description: "Deal notes and context"
+    views:
+      - name: "Pipeline by Stage"
+        type: "kanban"
+        visible_properties: ["title", "mrr", "close_date", "sales_rep", "account"]
+        group_by: "stage"
+      - name: "My Deals"
+        type: "table"
+        visible_properties: ["title", "stage", "mrr", "close_date", "account"]
+        filters:
+          - property: "stage"
+            condition: "is_not"
+            value: "Won"
+          - property: "stage"
+            condition: "is_not"
+            value: "Lost"
+      - name: "Forecast"
+        type: "table"
+        visible_properties: ["title", "stage", "probability", "mrr", "close_date"]
+        filters:
+          - property: "stage"
+            condition: "is_not"
+            value: "Won"
+          - property: "stage"
+            condition: "is_not"
+            value: "Lost"
+
+  activities:
+    display_name: "Activities"
+    description: "Customer interactions (calls, emails, meetings)"
+    icon: "📞"
+    emoji_color: "yellow"
+    properties:
+      title:
+        type: "title"
+        description: "Activity summary"
+        required: true
+      type:
+        type: "select"
+        description: "Type of interaction"
+        required: true
+        options:
+          - name: "Call"
+          - name: "Email"
+          - name: "Meeting"
+          - name: "Demo"
+          - name: "Note"
+      contact:
+        type: "relation"
+        description: "Contact involved"
+        target_database: "contacts"
+        required: true
+      account:
+        type: "relation"
+        description: "Account involved"
+        target_database: "accounts"
+      deal:
+        type: "relation"
+        description: "Related deal (if applicable)"
+        target_database: "deals"
+      activity_date:
+        type: "date"
+        description: "When the activity occurred"
+        required: true
+      duration_minutes:
+        type: "number"
+        description: "Duration if call/meeting"
+      notes:
+        type: "rich_text"
+        description: "Activity details (Claude enriches with insights)"
+      key_outcomes:
+        type: "rich_text"
+        description: "Key decisions/next steps (auto-populated by Claude)"
+      sentiment:
+        type: "select"
+        description: "Interaction sentiment"
+        options:
+          - name: "Positive"
+          - name: "Neutral"
+          - name: "Negative"
+      next_steps:
+        type: "rich_text"
+        description: "Follow-up actions"
+      created_at:
+        type: "created_time"
+        description: "When this record was created"
+    views:
+      - name: "This Week"
+        type: "table"
+        visible_properties: ["title", "type", "contact", "account", "activity_date", "notes"]
+        filters:
+          - property: "activity_date"
+            condition: "within_past_days"
+            value: 7
+      - name: "By Contact"
+        type: "timeline"
+        visible_properties: ["title", "type", "activity_date", "notes"]
+        group_by: "contact"
+
+  support_tickets:
+    display_name: "Support Tickets"
+    description: "Customer support cases"
+    icon: "🎫"
+    emoji_color: "red"
+    properties:
+      title:
+        type: "title"
+        description: "Ticket subject"
+        required: true
+      type:
+        type: "select"
+        description: "Issue type"
+        options:
+          - name: "Bug"
+          - name: "Feature Request"
+          - name: "Account Issue"
+          - name: "Billing"
+      status:
+        type: "select"
+        description: "Current status"
+        required: true
+        options:
+          - name: "Open"
+            color: "red"
+          - name: "In Progress"
+            color: "yellow"
+          - name: "Waiting on Customer"
+            color: "blue"
+          - name: "Resolved"
+            color: "green"
+      priority:
+        type: "select"
+        description: "Priority level"
+        options:
+          - name: "Critical"
+          - name: "High"
+          - name: "Medium"
+          - name: "Low"
+      account:
+        type: "relation"
+        description: "Account with issue"
+        target_database: "accounts"
+        required: true
+      contact:
+        type: "relation"
+        description: "Contact who reported"
+        target_database: "contacts"
+      assigned_to:
+        type: "select"
+        description: "Support team member"
+      description:
+        type: "rich_text"
+        description: "Issue details"
+      resolution:
+        type: "rich_text"
+        description: "How it was resolved"
+      created_at:
+        type: "created_time"
+      resolved_at:
+        type: "date"
+    views:
+      - name: "Open Tickets"
+        type: "table"
+        visible_properties: ["title", "priority", "account", "status", "created_at"]
+        filters:
+          - property: "status"
+            condition: "is_not"
+            value: "Resolved"
+      - name: "By Account"
+        type: "table"
+        visible_properties: ["title", "status", "priority", "created_at"]
+        group_by: "account"
+
+automations:
+  - name: "enrich_contact_on_create"
+    trigger: "contact_created"
+    description: "When new contact added, Claude enriches phone/role if missing"
+    mcp_tool: "enrich_contact"
+    validation:
+      requires: ["email", "account"]
+      enriches: ["phone", "role"]
+    requires_review: true
+
+  - name: "update_last_contacted"
+    trigger: "activity_created"
+    description: "When activity logged, update contact.last_contacted and account.last_activity_date"
+    mcp_tool: "update_last_contact_date"
+    validation:
+      requires: ["contact", "activity_date"]
+    requires_review: false
+
+  - name: "extract_activity_insights"
+    trigger: "activity_created"
+    description: "When activity notes provided, Claude extracts key outcomes and next steps"
+    mcp_tool: "analyze_activity"
+    validation:
+      requires: ["notes", "type"]
+      enriches: ["key_outcomes", "next_steps", "sentiment"]
+    requires_review: false
+
+  - name: "update_account_health"
+    trigger: "ticket_created OR activity_created"
+    description: "When support ticket or activity occurs, Claude recalculates account health_score"
+    mcp_tool: "calculate_health_score"
+    validation:
+      requires: ["account"]
+      updates: ["health_score"]
+    requires_review: false
+
+integrations:
+  claude_mcp:
+    description: "MCP server for AI-driven CRM operations"
+    tools:
+      - name: "enrich_contact"
+        description: "Fill in missing contact information from external sources"
+        writes_to: ["contacts"]
+        requires_review: true
+        error_handling: "fail_gracefully_if_source_unavailable"
+
+      - name: "update_last_contact_date"
+        description: "Auto-update last_contacted fields when activities logged"
+        writes_to: ["contacts", "accounts"]
+        requires_review: false
+
+      - name: "analyze_activity"
+        description: "Extract key outcomes, sentiment, next steps from activity notes"
+        writes_to: ["activities"]
+        requires_review: false
+
+      - name: "calculate_health_score"
+        description: "Compute account health based on support tickets, engagement, MRR"
+        writes_to: ["accounts"]
+        requires_review: false
+
+  slack:
+    description: "Notifications for deal progression and urgent support tickets"
+    direction: "outbound"
+    events:
+      - trigger: "deal_stage_changed"
+        message_template: "{sales_rep} moved {title} to {stage}"
+        recipients: "deal_owner, manager"
+
+      - trigger: "deal_won"
+        message_template: "🎉 {title} Won! {mrr}/month from {account}"
+        recipients: "sales_team, finance"
+
+      - trigger: "ticket_created_critical"
+        message_template: "🚨 CRITICAL: {title} from {account}"
+        recipients: "support_team, sales_rep_for_account"
+
+      - trigger: "account_health_low"
+        message_template: "⚠️ {account} health dropped to {health_score}/10"
+        recipients: "account_owner, manager"
+
+    frequency: "real_time"
+    error_handling: "retry_3_times_then_log"
+
+  stripe:
+    description: "Billing and usage data sync"
+    direction: "inbound"
+    events:
+      - trigger: "subscription_created"
+        action: "create_account_if_not_exists"
+      - trigger: "subscription_updated"
+        action: "update_account_mrr"
+      - trigger: "subscription_canceled"
+        action: "mark_account_churned, set_status=Churned"
+
+    frequency: "daily_sync"
+    error_handling: "log_and_alert_finance"
+
+  email_sync:
+    description: "Future integration - email activity logging (manual for now)"
+    direction: "inbound"
+    status: "planned"
+    events:
+      - trigger: "email_received_from_contact"
+        action: "create_activity_record"
+
+constraints:
+  data_retention:
+    soft_delete_enabled: true
+    soft_delete_retention_days: 90
+    hard_delete_allowed: false
+    reason: "Maintain audit trail for compliance"
+
+  deletion_cascade:
+    account_deleted: "contacts_soft_deleted, deals_soft_deleted, tickets_soft_deleted"
+    contact_deleted: "activities_linked_to_contact_archived"
+    deal_deleted: "soft_delete_only"
+
+  audit_logging:
+    enabled: true
+    logs: ["who_changed_what", "timestamp", "reason"]
+    applies_to: ["all_claude_writes", "manual_record_deletes"]
+
+  permissions_model:
+    enforcement: "role_based_access_control"
+    roles:
+      - name: "Sales"
+        can_create: ["Accounts", "Contacts", "Deals", "Activities"]
+        can_read: ["Accounts", "Contacts", "Deals", "Activities"]
+        can_edit: ["own_deals", "own_activities"]
+        can_delete: false
+
+      - name: "Support"
+        can_create: ["Tickets", "Activities"]
+        can_read: ["Accounts", "Contacts", "Tickets", "Activities"]
+        can_edit: ["own_tickets", "own_activities"]
+        can_delete: false
+
+      - name: "Finance"
+        can_create: []
+        can_read: ["Accounts", "Deals"]
+        can_edit: []
+        can_delete: false
+
+      - name: "Admin"
+        can_create: ["all"]
+        can_read: ["all"]
+        can_edit: ["all"]
+        can_delete: ["soft_delete_only"]
+
+  concurrency:
+    max_concurrent_users: 20
+    max_records_per_view: 10000
+    acceptable_query_latency_ms: 2000
+
+  data_quality:
+    enrichment_accuracy_threshold: 0.90
+    stale_data_warning_days: 30
+    required_fields_validation:
+      account: ["name", "status"]
+      contact: ["name", "email", "account"]
+      deal: ["title", "stage", "mrr", "account"]
+
+  compliance:
+    soft_delete_retention: 90_days
+    gdpr_enabled: true
+    soc2_lite: true
+    audit_log_retention: 365_days
+
+success_metrics:
+  - name: "Pipeline Visibility"
+    calculation: "total_pipeline_value = sum(all deals in Prospect|Qualified|Proposal)"
+    target: "100% of deals visible, grouped by stage and rep"
+    refresh_frequency: "real_time"
+
+  - name: "Deal Close Rate"
+    calculation: "won_deals / (won_deals + lost_deals) per rep, monthly"
+    target: ">50% win rate"
+    refresh_frequency: "daily"
+
+  - name: "Account Health"
+    calculation: "score(0-10) based on: support tickets (count, priority), activity frequency, revenue trend"
+    target: ">6/10 for active accounts"
+    refresh_frequency: "daily"
+
+  - name: "Time to Close"
+    calculation: "median(close_date - deal_created_date) in days"
+    target: "<60 days median"
+    refresh_frequency: "weekly"
+
+  - name: "Manual Reporting Time"
+    calculation: "hours spent on weekly CRM reporting"
+    target: "<1 hour (down from 4 hours)"
+    refresh_frequency: "weekly"

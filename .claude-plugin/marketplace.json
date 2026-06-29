@@ -19,7 +19,8 @@
         "./skills/setup-repo",
         "./skills/ship-issue",
         "./skills/release-to-qa",
-        "./skills/release-to-prod"
+        "./skills/release-to-prod",
+        "./skills/design-notion-system"
       ]
     }
   ]
